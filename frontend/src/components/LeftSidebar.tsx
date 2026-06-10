@@ -98,8 +98,8 @@ export default function LeftSidebar({
             onClick={handleBarToggle}
             style={{
               ...sideBtn(false),
-              color: barOpen ? "#23a55a" : "#f23f43",
-              border: `1px solid ${barOpen ? "#23a55a44" : "#f23f4344"}`,
+              color: barOpen ? "#22c55e" : "#ef4444",
+              border: `1px solid ${barOpen ? "#22c55e44" : "#ef444444"}`,
             }}
           >
             <span>{barOpen ? "🟢" : "🔴"}</span>
@@ -139,7 +139,7 @@ export default function LeftSidebar({
           )}
 
           {lastCallAt && (
-            <div style={{ fontSize: "0.65rem", color: "#f0b232", padding: "0.1rem 0.6rem" }}>
+            <div style={{ fontSize: "0.65rem", color: "#f97316", padding: "0.1rem 0.6rem" }}>
               Last call: {new Date(lastCallAt).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
             </div>
           )}

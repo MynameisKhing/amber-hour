@@ -9,13 +9,32 @@ export default function Lounge({ onEnterChat }: Props) {
       width: "100%",
       height: "100%",
       overflow: "hidden",
-      background: "var(--bg)",
+      background: "#0d0b1e",
     }}>
-      {/* Flat Discord-dark surface with a subtle depth vignette */}
+      {/* Pixel-art bar background */}
       <div style={{
         position: "absolute", inset: 0,
-        background: "radial-gradient(ellipse at center, color-mix(in srgb, var(--surface) 60%, var(--bg)) 0%, var(--bg) 80%)",
+        backgroundImage: "url('/bar-background.gif')",
+        backgroundSize: "cover",
+        backgroundPosition: "center bottom",
+        backgroundRepeat: "no-repeat",
+        imageRendering: "pixelated",
+      }} />
+
+      {/* CRT scanlines */}
+      <div style={{
+        position: "absolute", inset: 0,
+        backgroundImage: "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.10) 2px, rgba(0,0,0,0.10) 4px)",
         pointerEvents: "none",
+        zIndex: 1,
+      }} />
+
+      {/* Vignette */}
+      <div style={{
+        position: "absolute", inset: 0,
+        background: "radial-gradient(ellipse at center, transparent 35%, rgba(0,0,0,0.55) 100%)",
+        pointerEvents: "none",
+        zIndex: 1,
       }} />
     </div>
   );

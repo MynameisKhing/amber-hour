@@ -36,7 +36,7 @@ const fieldSelect: React.CSSProperties = {
   cursor: "pointer",
   lineHeight: "2.625rem",
   backgroundImage:
-    "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23949ba4' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E\")",
+    "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23705542' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E\")",
   backgroundRepeat: "no-repeat",
   backgroundPosition: "right 0.875rem center",
 };
@@ -96,7 +96,7 @@ export default function Login({ onLogin }: Props) {
         flexShrink: 0,
         position: "relative",
         overflow: "hidden",
-        background: "linear-gradient(150deg, color-mix(in srgb, var(--amber) 28%, var(--surface)) 0%, var(--surface) 50%, var(--bg) 100%)",
+        background: "linear-gradient(150deg, #eddcbf 0%, #f2e6ce 45%, #e8d9bc 100%)",
         borderRight: "1px solid var(--border)",
         display: "flex",
         flexDirection: "column",
@@ -126,7 +126,7 @@ export default function Login({ onLogin }: Props) {
             color: "var(--amber-lt)",
             letterSpacing: "-0.025em",
             marginBottom: "0.625rem",
-            fontFamily: "'Noto Sans', sans-serif",
+            fontFamily: "'Pixelify Sans', sans-serif",
           }}>
             The Amber Hour
           </div>

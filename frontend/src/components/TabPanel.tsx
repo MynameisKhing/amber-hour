@@ -96,7 +96,7 @@ export default function TabPanel({ token, userRole }: Props) {
               ))}
               {o.status === "pending" && (
                 <div style={{ display: "flex", gap: "0.3rem", marginTop: "0.4rem" }}>
-                  <button onClick={() => updateStatus(o.id, "served")} style={{ flex: 1, fontSize: "0.65rem", padding: "0.2rem 0.3rem", background: "#23a55a", borderColor: "#23a55a", color: "#fff" }}>
+                  <button onClick={() => updateStatus(o.id, "served")} style={{ flex: 1, fontSize: "0.65rem", padding: "0.2rem 0.3rem", background: "#2a8c4a", borderColor: "#2a8c4a", color: "#fff" }}>
                     ✅ Served
                   </button>
                   <button onClick={() => updateStatus(o.id, "cancelled")} style={{ flex: 1, fontSize: "0.65rem", padding: "0.2rem 0.3rem", background: "transparent", borderColor: "var(--danger)", color: "var(--danger)" }}>

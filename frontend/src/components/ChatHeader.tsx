@@ -66,7 +66,7 @@ export default function ChatHeader({ onlineUsers, unreadWhisperTotal, membersOpe
           {unreadWhisperTotal > 0 && (
             <span style={{
               position: "absolute", top: -4, right: -6,
-              fontSize: "0.6rem", background: "var(--danger)", color: "#fff",
+              fontSize: "0.6rem", background: "#ef4444", color: "#fff",
               borderRadius: "50%", padding: "1px 4px", lineHeight: 1.4,
               minWidth: 14, textAlign: "center",
             }}>

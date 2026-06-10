@@ -279,6 +279,25 @@ jukebox, etc. all behave exactly as before.
 - **Compose backend host port** moved to `8082` (override `BACKEND_PORT`) so the
   container stack runs alongside a local `go run` on :8080.
 
+### E. Cozy re‑skin (reverted the Discord look)
+The Discord dark theme from §A was rolled back to a **warm, cozy pixel‑art bar**
+aesthetic (still all driven by the CSS variables in `src/index.css`):
+- **Palette** → back to the warm parchment values (`--bg #f4ede1`, amber accents,
+  warm shadows, `button:hover` uses `--amber-lt` again).
+- **Font** → **Pixelify Sans** across the whole UI (`Mitr` fallback carries Thai
+  glyphs Pixelify lacks); `index.html` font link restored.
+- **Messages** → reverted from flat rows back to **cozy chat bubbles** (own
+  messages right‑aligned amber bubbles) — the **image lightbox is kept**.
+- **Lounge** → restored the pixel **bar‑background GIF** + CRT scanlines in
+  `LoungePopup` (the rendered lounge) and the unused `Lounge` page.
+- **Icons** → `Icons.tsx` now renders **MDI** icons via `@mdi/react` + `@mdi/js`
+  (was hand‑rolled SVGs). Same exported names/`{size,style}` API, so all callers
+  are unchanged.
+- Status colors and the Login brand/gradient reverted to the warm originals.
+
+> Net: the app looks like the original cozy bar again, but keeps the later
+> functional additions (image lightbox, bigger menu, smarter AI bartender).
+
 ### Known follow‑ups / not done
 - No Kubernetes manifests or Rancher config yet (only Dockerfiles + compose).
 - Discord *dark* only — no light mode.

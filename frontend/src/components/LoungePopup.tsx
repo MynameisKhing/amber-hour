@@ -194,10 +194,18 @@ export default function LoungePopup({ onlineUsers, onClose }: Props) {
         position: "relative", width: "100%", aspectRatio: "16 / 9",
         background: "var(--bg)", overflow: "hidden",
       }}>
-        {/* Flat Discord-dark room — subtle floor gradient so sprites have ground */}
+        {/* Background */}
+        <div style={{
+          position: "absolute", inset: 0,
+          backgroundImage: "url('/bar-background.gif')",
+          backgroundSize: "cover", backgroundPosition: "center bottom",
+          backgroundRepeat: "no-repeat", imageRendering: "pixelated",
+        }} />
+
+        {/* Scanlines */}
         <div style={{
           position: "absolute", inset: 0, pointerEvents: "none",
-          background: "linear-gradient(180deg, var(--bg) 0%, var(--surface) 70%, color-mix(in srgb, var(--surface2) 70%, var(--surface)) 100%)",
+          backgroundImage: "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.07) 2px, rgba(0,0,0,0.07) 4px)",
         }} />
 
         {/* Characters — rendered once, animated via DOM refs */}
@@ -229,7 +237,7 @@ export default function LoungePopup({ onlineUsers, onClose }: Props) {
                 draggable={false}
                 onError={e => {
                   const el = e.currentTarget;
-                  el.style.cssText = `width:32px;height:${SPRITE_H}px;background:${u.role === "staff" ? "#f0b232" : "#00a8fc"};border-radius:4px;`;
+                  el.style.cssText = `width:32px;height:${SPRITE_H}px;background:${u.role === "staff" ? "#fb923c" : "#7dd3fc"};border-radius:4px;`;
                   el.removeAttribute("src");
                 }}
                 style={{

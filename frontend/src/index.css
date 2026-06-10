@@ -56,26 +56,23 @@
 .marquee-wrap { overflow: hidden; flex: 1; min-width: 0; }
 
 :root {
-  /* Discord dark palette
-     Variable NAMES are kept from the original parchment theme so the ~280
-     existing var(--…) usages flip at once; only the values changed.
-     --amber* now carry Discord "blurple"; --amber-lt is a LIGHT blurple
-     tuned for emphasis text on dark (see button:hover below). */
-  --bg:        #313338;  /* main chat area            */
-  --surface:   #2b2d31;  /* sidebars, header, popovers */
-  --surface2:  #383a40;  /* hover/elevated controls, inputs, reaction pills */
-  --border:    #3f4147;  /* dividers                  */
-  --amber:     #5865f2;  /* brand/accent, buttons, mentions (blurple) */
-  --amber-lt:  #949cf7;  /* emphasis text (light blurple, readable on dark) */
-  --amber-dim: #404249;  /* reply border tint         */
-  --text:      #dbdee1;  /* normal text               */
-  --text-muted:#949ba4;  /* muted text / timestamps   */
-  --staff:     #f0b232;  /* staff role color (gold)   */
-  --customer:  #00a8fc;  /* customer role color (cyan)*/
-  --danger:    #f23f43;  /* destructive               */
-  --radius:    8px;      /* softer Discord corners    */
+  /* warm parchment palette — cozy bar theme */
+  --bg:        #f4ede1;
+  --surface:   #faf5ed;
+  --surface2:  #ecdfd0;
+  --border:    #c8b49a;
+  --amber:     #9c560a;
+  --amber-lt:  #7a4007;
+  --amber-dim: #f0dab8;
+  --text:      #1c1208;
+  --text-muted:#705542;
+  --staff:     #5b27a8;
+  --customer:  #155ea8;
+  --danger:    #b82020;
+  --radius:    4px;
   --tabbar-h:  52px;
-  font-family: 'Noto Sans', 'Segoe UI', system-ui, sans-serif;
+  /* whole-UI pixel font; Mitr fallback carries Thai glyphs Pixelify lacks */
+  font-family: 'Pixelify Sans', 'Mitr', 'Segoe UI', system-ui, sans-serif;
 }
 
 body {
@@ -109,8 +106,7 @@ button {
   transition: background 0.12s, border-color 0.12s;
   outline: none;
 }
-/* --amber-lt is now a *lighter* blurple (for text), so hover darkens explicitly */
-button:hover { background: #4752c4; border-color: #4752c4; }
+button:hover { background: var(--amber-lt); border-color: var(--amber-lt); }
 button:disabled { opacity: 0.4; cursor: not-allowed; }
 
 button.ghost {
@@ -173,7 +169,7 @@ select option { background: var(--surface); color: var(--text); }
     top: 0; left: 0; bottom: 0;
     z-index: 200;
     transform: translateX(-100%);
-    box-shadow: 3px 0 20px rgba(0, 0, 0, 0.45);
+    box-shadow: 3px 0 20px rgba(80, 40, 10, 0.18);
   }
   .bar-sidebar.open { transform: translateX(0); }
 
@@ -182,7 +178,7 @@ select option { background: var(--surface); color: var(--text); }
     top: 0; right: 0; bottom: 0;
     z-index: 200;
     transform: translateX(100%);
-    box-shadow: -3px 0 20px rgba(0, 0, 0, 0.45);
+    box-shadow: -3px 0 20px rgba(80, 40, 10, 0.18);
   }
   .bar-members.open { transform: translateX(0); }
 

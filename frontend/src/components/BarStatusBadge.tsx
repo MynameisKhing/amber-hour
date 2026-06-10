@@ -28,7 +28,7 @@ export default function BarStatusBadge({ open, lastCallAt }: Props) {
 
   const isLastCall = lastCallAt && new Date(lastCallAt).getTime() > Date.now();
 
-  const color = isLastCall ? "#f0b232" : open ? "#23a55a" : "#f23f43";
+  const color = isLastCall ? "#f97316" : open ? "#22c55e" : "#ef4444";
   const label = isLastCall ? `LAST CALL ${countdown}` : open ? "OPEN" : "CLOSED";
 
   return (

@@ -11,7 +11,7 @@ const actionBtn: CSSProperties = {
   cursor: "pointer",
   borderRadius: 5,
   lineHeight: 1.2,
-  color: "var(--text-muted)",
+  color: "var(--text)",
 };
 
 interface Props {
@@ -58,20 +58,17 @@ export default function MessageList({
       return (
         <span key={i} style={{
           background: isMe
-            ? "color-mix(in srgb, var(--amber) 30%, transparent)"
-            : "color-mix(in srgb, var(--amber) 14%, transparent)",
-          color: isMe ? "#fff" : "var(--amber-lt)",
-          borderRadius: 4, padding: "0 2px",
-          fontWeight: 500,
+            ? "color-mix(in srgb, var(--amber) 22%, transparent)"
+            : "color-mix(in srgb, var(--text-muted) 15%, transparent)",
+          color: isMe ? "var(--amber-lt)" : "inherit",
+          borderRadius: 4, padding: "0 3px",
+          fontWeight: isMe ? 600 : 500,
         }}>
           {part}
         </span>
       );
     });
   };
-
-  const fmtTime = (iso: string) =>
-    new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
   return (
     <>
@@ -80,7 +77,7 @@ export default function MessageList({
       onScroll={onScroll}
       style={{
         flex: 1, overflowY: "auto",
-        padding: "1.25rem 0 0.5rem",
+        padding: "2.5rem 0.75rem 0.5rem",
         display: "flex", flexDirection: "column",
       }}
     >
@@ -103,17 +100,13 @@ export default function MessageList({
           .map(([e]) => e);
 
         const prev = messages[index - 1];
-        // Discord groups consecutive messages from the same author within 5 min.
-        // A reply always breaks the group so its reference reads clearly.
         const grouped =
           Boolean(prev) &&
           prev.senderNick === m.senderNick &&
-          !m.replyTo &&
           new Date(m.createdAt).getTime() - new Date(prev.createdAt).getTime() < 5 * 60 * 1000;
 
         const nameColor =
           m.role === "staff" ? "var(--staff)" : mine ? "var(--amber-lt)" : "var(--customer)";
-        const roleTint = m.role === "staff" ? "var(--staff)" : "var(--customer)";
 
         return (
           <div
@@ -123,11 +116,12 @@ export default function MessageList({
             onClick={() => onHover(hoveredMsgId === m.id ? null : m.id)}
             style={{
               display: "flex",
+              flexDirection: mine ? "row-reverse" : "row",
               alignItems: "flex-start",
-              gap: "1rem",
-              padding: grouped ? "1px 1rem 1px" : "0.5rem 1rem 2px",
-              marginTop: grouped ? 0 : "0.35rem",
-              background: hovered ? "rgba(255,255,255,0.03)" : "transparent",
+              gap: "0.625rem",
+              padding: `${grouped ? 1 : 10}px 0.75rem ${grouped ? 1 : 3}px`,
+              borderRadius: 6,
+              background: hovered ? "rgba(255,255,255,0.038)" : "transparent",
               position: "relative",
               transition: "background 0.08s",
             }}
@@ -136,11 +130,11 @@ export default function MessageList({
               <div
                 onClick={(e) => e.stopPropagation()}
                 style={{
-                  position: "absolute", top: -14, right: 16,
+                  position: "absolute", top: -16, right: 12,
                   display: "flex", alignItems: "center",
                   background: "var(--surface)", border: "1px solid var(--border)",
                   borderRadius: 8, padding: "3px 5px", gap: 2,
-                  boxShadow: "0 2px 10px rgba(0,0,0,0.45)", zIndex: 10,
+                  boxShadow: "0 3px 14px rgba(80,40,10,0.18)", zIndex: 10,
                 }}
               >
                 {EMOJIS.map((emoji) => (
@@ -150,7 +144,7 @@ export default function MessageList({
                     title={`React ${emoji}`}
                     style={{
                       background: myReactions.includes(emoji)
-                        ? "color-mix(in srgb, var(--amber) 30%, var(--surface2))"
+                        ? "color-mix(in srgb, var(--amber) 25%, var(--surface2))"
                         : "transparent",
                       border: "none", padding: "3px 5px", fontSize: "1rem",
                       cursor: "pointer", borderRadius: 5, lineHeight: 1.2,
@@ -180,57 +174,60 @@ export default function MessageList({
               </div>
             )}
 
-            {/* Left gutter: avatar on group start, hover-timestamp when grouped */}
-            {grouped ? (
-              <div style={{
-                width: 40, flexShrink: 0,
-                fontSize: "0.625rem", color: "var(--text-muted)",
-                textAlign: "right", paddingTop: 4, lineHeight: 1.4,
-                opacity: hovered ? 1 : 0, userSelect: "none",
-              }}>
-                {fmtTime(m.createdAt)}
-              </div>
-            ) : (
-              <div style={{
-                width: 40, height: 40, borderRadius: "50%",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: "1rem", fontWeight: 700,
-                flexShrink: 0, marginTop: 2, userSelect: "none",
-                background: `color-mix(in srgb, ${roleTint} 25%, var(--surface2))`,
-                color: roleTint,
-              }}>
-                {m.senderNick[0]?.toUpperCase()}
-              </div>
+            {!mine && (
+              grouped ? (
+                <div style={{ width: 36, flexShrink: 0 }} />
+              ) : (
+                <div style={{
+                  width: 36, height: 36, borderRadius: "50%",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: "0.9rem", fontWeight: 700,
+                  flexShrink: 0, marginTop: 2,
+                  background: m.role === "staff"
+                    ? "color-mix(in srgb, var(--staff) 18%, var(--surface2))"
+                    : "color-mix(in srgb, var(--customer) 18%, var(--surface2))",
+                  color: m.role === "staff" ? "var(--staff)" : "var(--customer)",
+                  border: `1.5px solid ${m.role === "staff"
+                    ? "color-mix(in srgb, var(--staff) 30%, transparent)"
+                    : "color-mix(in srgb, var(--customer) 30%, transparent)"}`,
+                }}>
+                  {m.senderNick[0]?.toUpperCase()}
+                </div>
+              )
             )}
 
             <div style={{
               display: "flex", flexDirection: "column",
-              alignItems: "flex-start",
-              gap: "0.125rem", minWidth: 0, flex: 1,
+              alignItems: mine ? "flex-end" : "flex-start",
+              gap: "0.25rem", maxWidth: "75%", minWidth: 0,
             }}>
-              {m.replyTo && (
+              {!grouped && (
                 <div style={{
-                  display: "flex", alignItems: "center", gap: "0.35rem",
-                  fontSize: "0.8125rem", color: "var(--text-muted)",
-                  maxWidth: "100%", marginBottom: 1,
+                  display: "flex", alignItems: "baseline", gap: "0.5rem",
+                  flexDirection: mine ? "row-reverse" : "row",
                 }}>
-                  <IcoReply size={13} style={{ flexShrink: 0 }} />
-                  <span style={{ color: "var(--text)", fontWeight: 600, flexShrink: 0 }}>
-                    {m.replyToNick ?? "someone"}
+                  <span style={{ fontSize: "0.875rem", fontWeight: 600, color: nameColor }}>
+                    {m.senderNick}
                   </span>
-                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 320 }}>
-                    {m.replyToContent || "…"}
+                  <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>
+                    {new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                   </span>
                 </div>
               )}
 
-              {!grouped && (
-                <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem" }}>
-                  <span style={{ fontSize: "1rem", fontWeight: 600, color: nameColor }}>
-                    {m.senderNick}
+              {m.replyTo && (
+                <div style={{
+                  display: "flex", alignItems: "center", gap: "0.35rem",
+                  fontSize: "0.78rem", color: "var(--text-muted)",
+                  maxWidth: "100%", padding: "0 0.25rem 0 0.4rem",
+                  borderLeft: "2px solid var(--amber-dim)", marginBottom: 1,
+                }}>
+                  <span style={{ color: "var(--amber-lt)", fontWeight: 600, flexShrink: 0 }}>
+                    <IcoReply size={13} style={{ display: "inline-block", verticalAlign: "middle", marginRight: 3 }} />
+                    {m.replyToNick ?? "someone"}
                   </span>
-                  <span style={{ fontSize: "0.6875rem", color: "var(--text-muted)" }}>
-                    {fmtTime(m.createdAt)}
+                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 240 }}>
+                    {m.replyToContent || "…"}
                   </span>
                 </div>
               )}
@@ -238,7 +235,7 @@ export default function MessageList({
               {editingId === m.id ? (
                 <div
                   onClick={(e) => e.stopPropagation()}
-                  style={{ display: "flex", flexDirection: "column", gap: "0.35rem", width: "min(560px, 90%)" }}
+                  style={{ display: "flex", flexDirection: "column", gap: "0.35rem", width: "min(440px, 72vw)" }}
                 >
                   <textarea
                     autoFocus
@@ -251,7 +248,7 @@ export default function MessageList({
                     style={{
                       width: "100%", resize: "none",
                       padding: "0.5rem 0.75rem", background: "var(--surface2)",
-                      borderRadius: 8, lineHeight: 1.5, minHeight: 40,
+                      borderRadius: 10, lineHeight: 1.5, minHeight: 40,
                     }}
                   />
                   <div style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>
@@ -263,41 +260,55 @@ export default function MessageList({
                 </div>
               ) : (
                 <div style={{
-                  fontSize: "1rem", lineHeight: 1.4,
-                  color: "var(--text)", wordBreak: "break-word",
-                  maxWidth: "100%",
+                  padding: m.mediaUrl && !m.content ? "0.25rem" : "0.5rem 0.9rem",
+                  borderRadius: mine
+                    ? "16px 4px 16px 16px"
+                    : grouped ? "16px" : "4px 16px 16px 16px",
+                  background: mine
+                    ? "color-mix(in srgb, var(--amber) 22%, var(--surface2))"
+                    : m.role === "staff"
+                    ? "color-mix(in srgb, var(--staff) 12%, var(--surface2))"
+                    : "var(--surface2)",
+                  border: `1px solid ${mine
+                    ? "color-mix(in srgb, var(--amber) 30%, transparent)"
+                    : m.role === "staff"
+                    ? "color-mix(in srgb, var(--staff) 22%, transparent)"
+                    : "var(--border)"}`,
+                  fontSize: "0.9rem", lineHeight: 1.55,
+                  wordBreak: "break-word", overflow: "hidden",
+                  boxShadow: "0 1px 3px rgba(80,40,10,0.1)",
                 }}>
                   {m.mediaUrl && isImage(m.mediaUrl) && (
                     <img
                       src={m.mediaUrl} alt=""
                       onClick={(e) => { e.stopPropagation(); setLightbox(m.mediaUrl!); }}
-                      style={{ display: "block", maxWidth: "min(400px, 100%)", maxHeight: 300, borderRadius: 8, cursor: "pointer", marginTop: 2 }}
+                      style={{ display: "block", maxWidth: "100%", maxHeight: 300, borderRadius: 10, cursor: "pointer" }}
                     />
                   )}
                   {m.mediaUrl && !isImage(m.mediaUrl) && (
                     <a
                       href={m.mediaUrl} target="_blank" rel="noreferrer"
                       onClick={(e) => e.stopPropagation()}
-                      style={{ color: "var(--customer)", fontSize: "0.9rem", textDecoration: "none" }}
+                      style={{ color: "var(--amber-lt)", fontSize: "0.85rem", textDecoration: "underline" }}
                     >
                       <IcoAttach size={14} style={{ display: "inline-block", verticalAlign: "middle", marginRight: 3 }} />Attachment
                     </a>
                   )}
                   {m.content && (
-                    <span style={{ marginTop: m.mediaUrl ? "0.375rem" : 0, display: "inline" }}>
+                    <div style={{ marginTop: m.mediaUrl ? "0.375rem" : 0 }}>
                       {renderContent(m.content)}
                       {m.editedAt && (
-                        <span style={{ fontSize: "0.625rem", color: "var(--text-muted)", marginLeft: 6 }}>
+                        <span style={{ fontSize: "0.68rem", color: "var(--text-muted)", marginLeft: 6 }}>
                           (edited)
                         </span>
                       )}
-                    </span>
+                    </div>
                   )}
                 </div>
               )}
 
               {Object.keys(m.reactions ?? {}).length > 0 && (
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "0.25rem", marginTop: "0.25rem" }}>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "0.25rem" }}>
                   {Object.entries(m.reactions).map(([emoji, nicks]) =>
                     nicks.length > 0 ? (
                       <button
@@ -305,19 +316,19 @@ export default function MessageList({
                         onClick={(e) => { e.stopPropagation(); onReact(m.id, emoji); }}
                         style={{
                           display: "flex", alignItems: "center", gap: "0.25rem",
-                          padding: "1px 8px", borderRadius: 8, fontSize: "0.8rem",
+                          padding: "2px 8px", borderRadius: 10, fontSize: "0.8rem",
                           background: nicks.includes(currentUserNick)
-                            ? "color-mix(in srgb, var(--amber) 24%, var(--surface2))"
+                            ? "color-mix(in srgb, var(--amber) 20%, var(--surface2))"
                             : "var(--surface2)",
                           border: `1px solid ${nicks.includes(currentUserNick)
-                            ? "var(--amber)"
-                            : "transparent"}`,
+                            ? "color-mix(in srgb, var(--amber) 40%, transparent)"
+                            : "var(--border)"}`,
                           cursor: "pointer", color: "var(--text)",
                         }}
                         title={nicks.join(", ")}
                       >
                         {emoji}{" "}
-                        <span style={{ fontSize: "0.72rem", color: nicks.includes(currentUserNick) ? "var(--amber-lt)" : "var(--text-muted)" }}>
+                        <span style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>
                           {nicks.length}
                         </span>
                       </button>

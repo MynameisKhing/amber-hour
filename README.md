@@ -1,6 +1,6 @@
 # 🍸 Amber Hour
 
-A cozy late-night **bar-themed realtime chat** app with a **Discord-style dark UI** —
+A cozy late-night **bar-themed realtime chat** app with a **warm pixel-art UI** —
 built as a hands-on lab for **Docker / Kubernetes / Rancher** deployment practice.
 
 Go (WebSocket) backend · React + Vite frontend · Postgres + Redis · fully containerized.
@@ -13,7 +13,7 @@ Go (WebSocket) backend · React + Vite frontend · Postgres + Redis · fully con
 
 - **Realtime chat** over WebSockets with presence, typing indicators, and Redis
   pub/sub fan-out (scales across multiple backend replicas).
-- **Discord-style messages** — flat rows, avatars, role-colored names, reactions,
+- **Cozy chat** — rounded message bubbles, avatars, role-colored names, reactions,
   reply / edit / delete, mentions, and an **in-app image lightbox**.
 - **Bar economy** — drink **menu**, play-money **wallet** (฿) with passive earning,
   **orders / tabs**, and a **leaderboard**.
@@ -25,7 +25,7 @@ Go (WebSocket) backend · React + Vite frontend · Postgres + Redis · fully con
 | Layer    | Tech |
 |----------|------|
 | Backend  | Go 1.23 · `net/http` · pgx · go-redis · gorilla/websocket · JWT · Prometheus |
-| Frontend | React 18 · Vite 5 · TypeScript (inline styles + CSS variables, no UI framework) |
+| Frontend | React 18 · Vite 5 · TypeScript · MDI icons (inline styles + CSS variables, no UI framework) |
 | Data     | Postgres 16 · Redis 7 |
 | Runtime  | Docker (multi-stage) · docker-compose · nginx |
 

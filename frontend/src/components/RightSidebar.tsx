@@ -92,7 +92,7 @@ export default function RightSidebar({
             <IcoMessage size={14} />
             {(unreadWhispers[u.nickname] ?? 0) > 0 && (
               <span style={{
-                fontSize: "0.6rem", background: "var(--danger)", color: "#fff",
+                fontSize: "0.6rem", background: "#ef4444", color: "#fff",
                 borderRadius: "50%", padding: "1px 4px", marginLeft: 2,
                 verticalAlign: "top", lineHeight: 1.4,
               }}>
