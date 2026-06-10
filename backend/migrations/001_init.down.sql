@@ -1,0 +1,8 @@
+DROP TABLE IF EXISTS song_history;
+DROP TABLE IF EXISTS guestbook;
+DROP TABLE IF EXISTS order_items;
+DROP TABLE IF EXISTS orders;
+DROP TABLE IF EXISTS messages;
+DROP TABLE IF EXISTS menu_items;
+DROP TABLE IF EXISTS sessions;
+DROP TABLE IF EXISTS access_codes;

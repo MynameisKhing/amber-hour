@@ -1,0 +1,24 @@
+# Secrets — never commit
+.env
+**/.env
+!.env.example
+
+# Go
+backend/server
+backend/server.exe
+backend/server.log
+backend/uploads/
+*.exe
+
+# Node / frontend
+node_modules/
+frontend/dist/
+frontend/node_modules/
+*.tsbuildinfo
+
+# Local tool settings (machine-specific)
+.claude/settings.local.json
+
+# OS / editor
+.DS_Store
+Thumbs.db

@@ -1,0 +1,201 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.92) translateY(8px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0); }
+}
+@keyframes spriteIdleBob {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-3px); }
+}
+@keyframes ticker {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-100%); }
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.45; }
+}
+@keyframes typingBounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30%            { transform: translateY(-5px); opacity: 1; }
+}
+@keyframes fadeInOut {
+  0%   { opacity: 0; }
+  10%  { opacity: 1; }
+  75%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+@keyframes cheersEmoji {
+  0%   { transform: scale(0) rotate(-20deg); opacity: 0; }
+  38%  { transform: scale(1.35) rotate(8deg); opacity: 1; }
+  52%  { transform: scale(0.88) rotate(-4deg); opacity: 1; }
+  62%  { transform: scale(1.06) rotate(1deg); opacity: 1; }
+  75%  { transform: scale(1) rotate(0deg); opacity: 1; }
+  100% { transform: scale(0.7) rotate(6deg); opacity: 0; }
+}
+@keyframes cheersText {
+  0%   { transform: translateY(14px); opacity: 0; }
+  28%  { transform: translateY(14px); opacity: 0; }
+  48%  { transform: translateY(0); opacity: 1; }
+  75%  { transform: translateY(0); opacity: 1; }
+  100% { transform: translateY(-10px); opacity: 0; }
+}
+
+.ticker-text {
+  display: inline-block;
+  white-space: nowrap;
+  padding-left: 100%;
+  will-change: transform;
+  animation: ticker var(--ticker-duration, 20s) linear infinite;
+}
+.marquee-wrap { overflow: hidden; flex: 1; min-width: 0; }
+
+:root {
+  /* Discord dark palette
+     Variable NAMES are kept from the original parchment theme so the ~280
+     existing var(--…) usages flip at once; only the values changed.
+     --amber* now carry Discord "blurple"; --amber-lt is a LIGHT blurple
+     tuned for emphasis text on dark (see button:hover below). */
+  --bg:        #313338;  /* main chat area            */
+  --surface:   #2b2d31;  /* sidebars, header, popovers */
+  --surface2:  #383a40;  /* hover/elevated controls, inputs, reaction pills */
+  --border:    #3f4147;  /* dividers                  */
+  --amber:     #5865f2;  /* brand/accent, buttons, mentions (blurple) */
+  --amber-lt:  #949cf7;  /* emphasis text (light blurple, readable on dark) */
+  --amber-dim: #404249;  /* reply border tint         */
+  --text:      #dbdee1;  /* normal text               */
+  --text-muted:#949ba4;  /* muted text / timestamps   */
+  --staff:     #f0b232;  /* staff role color (gold)   */
+  --customer:  #00a8fc;  /* customer role color (cyan)*/
+  --danger:    #f23f43;  /* destructive               */
+  --radius:    8px;      /* softer Discord corners    */
+  --tabbar-h:  52px;
+  font-family: 'Noto Sans', 'Segoe UI', system-ui, sans-serif;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+}
+
+input, textarea, select {
+  font: inherit;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+input:focus, textarea:focus, select:focus {
+  border-color: var(--amber);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--amber) 16%, transparent);
+}
+
+button {
+  font: inherit;
+  border-radius: var(--radius);
+  border: 1px solid var(--amber);
+  cursor: pointer;
+  background: var(--amber);
+  color: #fff;
+  font-weight: 600;
+  padding: 0.5rem 1.25rem;
+  transition: background 0.12s, border-color 0.12s;
+  outline: none;
+}
+/* --amber-lt is now a *lighter* blurple (for text), so hover darkens explicitly */
+button:hover { background: #4752c4; border-color: #4752c4; }
+button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+button.ghost {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+button.ghost:hover {
+  color: var(--text);
+  border-color: var(--amber);
+  background: color-mix(in srgb, var(--amber) 6%, transparent);
+}
+
+select option { background: var(--surface); color: var(--text); }
+
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+/* ── Bar layout ── */
+.bar-root {
+  display: flex;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.bar-hamburger {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: none !important;
+  border: none !important;
+  color: var(--text) !important;
+  font-size: 1.2rem;
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.bar-sidebar, .bar-members {
+  transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.bar-members-toggle { display: none; }
+.msg-bubble-row { max-width: 75%; }
+
+/* ── Login ── */
+@media (max-width: 700px) {
+  .login-brand { display: none !important; }
+}
+
+/* ── Mobile ── */
+@media (max-width: 640px) {
+  .bar-hamburger { display: flex; }
+  .bar-members-toggle { display: flex !important; align-items: center; justify-content: center; }
+
+  .bar-sidebar {
+    position: fixed !important;
+    top: 0; left: 0; bottom: 0;
+    z-index: 200;
+    transform: translateX(-100%);
+    box-shadow: 3px 0 20px rgba(0, 0, 0, 0.45);
+  }
+  .bar-sidebar.open { transform: translateX(0); }
+
+  .bar-members {
+    position: fixed !important;
+    top: 0; right: 0; bottom: 0;
+    z-index: 200;
+    transform: translateX(100%);
+    box-shadow: -3px 0 20px rgba(0, 0, 0, 0.45);
+  }
+  .bar-members.open { transform: translateX(0); }
+
+  .msg-bubble-row { max-width: 88%; }
+}
+
+.typing-dot {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: typingBounce 1.4s ease-in-out infinite;
+}
+.typing-dot:nth-child(2) { animation-delay: 0.18s; }
+.typing-dot:nth-child(3) { animation-delay: 0.36s; }

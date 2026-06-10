@@ -1,0 +1,83 @@
+# Full local stack for Amber Hour.
+#   docker compose up --build        → http://localhost:8081 (frontend)
+# Services: postgres, redis, migrate (one-shot), backend, frontend.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-amber}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-amber}
+      POSTGRES_DB: ${POSTGRES_DB:-amber_hour}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U amber"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # One-shot schema migration. The app does NOT self-migrate, so this runs
+  # backend/migrations against Postgres before the backend starts.
+  # (Mirrors a Kubernetes init container / Job.)
+  migrate:
+    image: migrate/migrate:v4.17.1
+    volumes:
+      - ./backend/migrations:/migrations:ro
+    command:
+      - "-path=/migrations"
+      - "-database=postgres://amber:amber@postgres:5432/amber_hour?sslmode=disable"
+      - "up"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: on-failure
+
+  backend:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgres://amber:amber@postgres:5432/amber_hour?sslmode=disable
+      REDIS_URL: redis://redis:6379
+      ADDR: ":8080"
+      UPLOAD_DIR: /data/uploads
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      GOOGLE_AI_KEY: ${GOOGLE_AI_KEY:-}
+    ports:
+      - "8080:8080"
+    volumes:
+      - uploads:/data/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "8081:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  redisdata:
+  uploads:

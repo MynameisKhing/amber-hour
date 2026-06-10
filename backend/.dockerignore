@@ -1,0 +1,17 @@
+# Build artifacts & runtime data
+server.exe
+server
+server.log
+uploads/
+
+# Local env / secrets
+.env
+
+# VCS & docs
+.git
+.gitignore
+*.md
+
+# OS / editor
+.DS_Store
+Thumbs.db
