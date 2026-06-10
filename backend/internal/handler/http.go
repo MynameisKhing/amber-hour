@@ -521,18 +521,19 @@ func handleAIBartender(db *pgxpool.Pool) http.HandlerFunc {
 				return
 			}
 			rows, err := db.Query(r.Context(),
-				`SELECT name FROM menu_items WHERE is_available = true ORDER BY id LIMIT 10`,
+				`SELECT category, name, description, price FROM menu_items WHERE is_available = true ORDER BY category, id`,
 			)
 			if err != nil {
 				writeErr(w, http.StatusInternalServerError, "db error")
 				return
 			}
 			defer rows.Close()
-			var names []string
+			var menuLines []string
 			for rows.Next() {
-				var n string
-				if rows.Scan(&n) == nil {
-					names = append(names, n)
+				var cat, n, desc string
+				var price float64
+				if rows.Scan(&cat, &n, &desc, &price) == nil {
+					menuLines = append(menuLines, fmt.Sprintf("%s (%s, ฿%.0f) — %s", n, cat, price, desc))
 				}
 			}
 			if rows.Err() != nil {
@@ -540,8 +541,12 @@ func handleAIBartender(db *pgxpool.Pool) http.HandlerFunc {
 				return
 			}
 			prompt = fmt.Sprintf(
-				"You are the cool cyberpunk bartender at Amber Hour bar. A customer says: '%s'. Recommend a drink from this menu: %s. 2-3 sentences, punchy and sharp. Reply in English.",
-				body.Mood, strings.Join(names, ", "),
+				"You are the cool, sharp-tongued cyberpunk bartender at Amber Hour bar. "+
+					"A customer says: %q.\n\nTonight's menu:\n%s\n\n"+
+					"Recommend ONE item that best fits them — match their mood, flavor, strength, and budget. "+
+					"Name it exactly as written, mention the price, and give a punchy reason. 2-3 sentences, no lists. "+
+					"Only recommend items from the menu above. Reply in English.",
+				body.Mood, strings.Join(menuLines, "\n"),
 			)
 		case "pick_for_me":
 			if strings.TrimSpace(body.Mood) == "" {
@@ -550,12 +555,13 @@ func handleAIBartender(db *pgxpool.Pool) http.HandlerFunc {
 			}
 			type menuItemFull struct {
 				ID          int64
+				Category    string
 				Name        string
 				Description string
 				Price       float64
 			}
 			menuRows, err := db.Query(r.Context(),
-				`SELECT id, name, description, price FROM menu_items WHERE is_available = true ORDER BY id`,
+				`SELECT id, category, name, description, price FROM menu_items WHERE is_available = true ORDER BY category, id`,
 			)
 			if err != nil {
 				writeErr(w, http.StatusInternalServerError, "db error")
@@ -564,7 +570,7 @@ func handleAIBartender(db *pgxpool.Pool) http.HandlerFunc {
 			var allItems []menuItemFull
 			for menuRows.Next() {
 				var it menuItemFull
-				if menuRows.Scan(&it.ID, &it.Name, &it.Description, &it.Price) == nil {
+				if menuRows.Scan(&it.ID, &it.Category, &it.Name, &it.Description, &it.Price) == nil {
 					allItems = append(allItems, it)
 				}
 			}
@@ -576,10 +582,15 @@ func handleAIBartender(db *pgxpool.Pool) http.HandlerFunc {
 
 			var itemLines strings.Builder
 			for _, it := range allItems {
-				itemLines.WriteString(fmt.Sprintf("ID=%d | %s — %s (฿%.0f)\n", it.ID, it.Name, it.Description, it.Price))
+				itemLines.WriteString(fmt.Sprintf("ID=%d | %s [%s] — %s (฿%.0f)\n", it.ID, it.Name, it.Category, it.Description, it.Price))
 			}
 			aiPrompt := fmt.Sprintf(
-				"You are the cool cyberpunk bartender at Amber Hour bar. A customer says: \"%s\"\n\nTonight's available drinks:\n%s\nPick 2-3 drinks that best match this customer. Reply ONLY with valid JSON, no markdown fences, no extra text:\n{\"summary\":\"one punchy sentence in English\",\"picks\":[{\"id\":1,\"reason\":\"short reason in English\"}]}",
+				"You are the cool, sharp-tongued cyberpunk bartender at Amber Hour bar. A customer says: %q\n\n"+
+					"Tonight's available menu:\n%s\n"+
+					"Pick 2-3 items that best match this customer — weigh their mood, flavor preferences, strength, and budget. "+
+					"You may mix drinks and snacks. Only choose from the IDs listed above. "+
+					"Reply ONLY with valid JSON, no markdown fences, no extra text:\n"+
+					"{\"summary\":\"one punchy sentence in English\",\"picks\":[{\"id\":1,\"reason\":\"short reason in English\"}]}",
 				body.Mood, itemLines.String(),
 			)
 			aiResp, aiErr := ai.AskBartender(r.Context(), aiPrompt, 600)

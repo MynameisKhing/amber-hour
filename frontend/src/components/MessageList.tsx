@@ -1,4 +1,4 @@
-import type { CSSProperties, RefObject } from "react";
+import { useEffect, useState, type CSSProperties, type RefObject } from "react";
 import { IcoAttach, IcoReply, IcoEdit, IcoTrash } from "./Icons";
 import type { ChatMessage, Role } from "../types";
 import { EMOJIS, isImage } from "./constants";
@@ -41,6 +41,15 @@ export default function MessageList({
   onScroll, onHover, onReact, onReply, onStartEdit,
   onCancelEdit, onSaveEdit, onDeleteMsg, onEditTextChange,
 }: Props) {
+  // Clicking an image opens it in an in-app lightbox instead of a new tab.
+  const [lightbox, setLightbox] = useState<string | null>(null);
+  useEffect(() => {
+    if (!lightbox) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setLightbox(null); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [lightbox]);
+
   const renderContent = (content: string) => {
     const parts = content.split(/(@\w+)/g);
     return parts.map((part, i) => {
@@ -65,6 +74,7 @@ export default function MessageList({
     new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
   return (
+    <>
     <div
       ref={chatRef}
       onScroll={onScroll}
@@ -260,7 +270,7 @@ export default function MessageList({
                   {m.mediaUrl && isImage(m.mediaUrl) && (
                     <img
                       src={m.mediaUrl} alt=""
-                      onClick={(e) => { e.stopPropagation(); window.open(m.mediaUrl, "_blank"); }}
+                      onClick={(e) => { e.stopPropagation(); setLightbox(m.mediaUrl!); }}
                       style={{ display: "block", maxWidth: "min(400px, 100%)", maxHeight: 300, borderRadius: 8, cursor: "pointer", marginTop: 2 }}
                     />
                   )}
@@ -321,5 +331,48 @@ export default function MessageList({
       })}
       <div ref={bottomRef} />
     </div>
+
+    {lightbox && (
+      <div
+        onClick={() => setLightbox(null)}
+        style={{
+          position: "fixed", inset: 0, zIndex: 1000,
+          background: "rgba(0,0,0,0.85)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          padding: "2rem", cursor: "zoom-out",
+        }}
+      >
+        <img
+          src={lightbox} alt=""
+          onClick={(e) => e.stopPropagation()}
+          style={{ maxWidth: "90vw", maxHeight: "85vh", borderRadius: 8, cursor: "default", boxShadow: "0 8px 40px rgba(0,0,0,0.6)" }}
+        />
+        <a
+          href={lightbox} target="_blank" rel="noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            position: "absolute", bottom: 20, left: "50%", transform: "translateX(-50%)",
+            color: "var(--text)", fontSize: "0.8rem", textDecoration: "none",
+            background: "var(--surface)", border: "1px solid var(--border)",
+            padding: "0.35rem 0.8rem", borderRadius: 8,
+          }}
+        >
+          Open original ↗
+        </a>
+        <button
+          onClick={(e) => { e.stopPropagation(); setLightbox(null); }}
+          title="Close (Esc)"
+          aria-label="Close"
+          style={{
+            position: "absolute", top: 16, right: 20,
+            background: "transparent", border: "none", color: "#fff",
+            fontSize: "1.6rem", lineHeight: 1, cursor: "pointer", padding: "0.25rem 0.5rem",
+          }}
+        >
+          ✕
+        </button>
+      </div>
+    )}
+    </>
   );
 }

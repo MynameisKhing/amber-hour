@@ -196,11 +196,23 @@ Three artifacts make the whole stack reproducible (and K8s‑ready):
   WebSocket to the `backend` service.
 - **`docker-compose.yml`** — `postgres` + `redis` + a one‑shot **`migrate`** service
   (applies `backend/migrations` before the backend starts) + `backend` + `frontend`.
-  Ports: frontend `:8081`, backend `:8080`.
+  Ports: frontend `:8081`, backend host `:8082`→container `:8080` (8082 avoids
+  clashing with a local `go run` on :8080; override via `BACKEND_PORT`). The
+  frontend reaches the backend internally as `http://backend:8080`, so the host
+  port is only for direct debugging.
 
 ```powershell
 docker compose up --build      # whole app; open http://localhost:8081
 ```
+
+> **Gotcha — "Dirty database version N".** The `migrate` service applies the
+> SQL migrations against a *fresh* database. If your Postgres volume already has
+> the schema (e.g. you previously ran the app's `go run` against the same DB
+> out‑of‑band), `001_init` will fail with *relation already exists* and mark the
+> DB dirty. Fix it once by telling migrate the schema is already current:
+> `UPDATE schema_migrations SET version = <N>, dirty = false;` (or
+> `migrate ... force <N>`), then `docker compose up` re‑runs cleanly. A truly
+> fresh volume (`docker compose down -v`) never hits this.
 
 **K8s/Rancher mapping** (the point of this lab): the `migrate` service ↔ an init
 container or `Job`; `/healthz` ↔ livenessProbe; `/readyz` ↔ readinessProbe;
@@ -248,6 +260,24 @@ jukebox, etc. all behave exactly as before.
 - Extended **`docker-compose.yml`** with `migrate`, `backend`, and `frontend` services.
 - Initialized the git repo and made the first commit (no remote configured yet —
   add your own and push).
+
+### D. Follow‑up session — image, menu, AI
+- **Image lightbox** — clicking an image in chat now opens an in‑app full‑screen
+  lightbox (dark backdrop, Esc / click‑to‑close, "Open original" link) instead of a
+  new browser tab. `frontend/src/components/MessageList.tsx`.
+- **Bigger menu** — added migration **`006_more_menu`** (+13 items): more cocktails,
+  light drinks and snacks, plus two new categories **mocktail** and **shot**. Menu
+  went 7 → 20 items. (The compose `migrate` service applies it; see the "Dirty
+  database" gotcha in §7 — the existing dev volume needed a one‑time
+  `force 5` before `006` applied.)
+- **Smarter AI bartender** — both AI paths now get richer menu context. `recommend`
+  previously sent only drink *names* capped at 10; it now sends every available
+  item with **category, description and price** and a sharper instruction.
+  `pick_for_me` also includes category and a clearer "match mood/flavor/strength/
+  budget, drinks **or** snacks, valid IDs only" prompt. `backend/internal/handler/http.go`
+  (response shapes unchanged, so `MenuPanel` / `SuggestPanel` are untouched).
+- **Compose backend host port** moved to `8082` (override `BACKEND_PORT`) so the
+  container stack runs alongside a local `go run` on :8080.
 
 ### Known follow‑ups / not done
 - No Kubernetes manifests or Rancher config yet (only Dockerfiles + compose).

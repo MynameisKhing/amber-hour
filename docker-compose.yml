@@ -57,7 +57,9 @@ services:
       JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
       GOOGLE_AI_KEY: ${GOOGLE_AI_KEY:-}
     ports:
-      - "8080:8080"
+      # Host 8082 so the container doesn't clash with a local `go run` on :8080.
+      # The frontend reaches the backend internally as http://backend:8080.
+      - "${BACKEND_PORT:-8082}:8080"
     volumes:
       - uploads:/data/uploads
     depends_on:
