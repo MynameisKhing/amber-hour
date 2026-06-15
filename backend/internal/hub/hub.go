@@ -12,10 +12,9 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-const redisChan = "amber:broadcast"
-
-// Passive earning: every connected patron gains earnAmount ฿ every earnIntervalSec.
 const (
+	redisChan       = "amber:broadcast"
+	presenceTTL     = 25 * time.Second  // presence expires after 25s; ping refreshes every 15s
 	earnAmount      = 25
 	earnIntervalSec = 30
 )
@@ -55,6 +54,8 @@ type Hub struct {
 	rdb        *redis.Client
 	db         *pgxpool.Pool
 
+	// Presence is now Redis-backed for multi-pod safety.
+	// Jukebox remains in-memory (high-frequency state, acceptable for now).
 	jukeboxQueue []jukeboxEntry
 	jukeboxNow   *jukeboxNowPlaying
 	jukeboxSkips map[string]bool
@@ -175,24 +176,64 @@ func (h *Hub) awardOnline() {
 	}
 }
 
+// setPresence registers a user in Redis with TTL (for multi-pod safe presence).
+func (h *Hub) setPresence(ctx context.Context, nick, role string) {
+	data, _ := json.Marshal(map[string]string{"nick": nick, "role": role})
+	h.rdb.Set(ctx, "amber:users:"+nick, data, presenceTTL)
+}
+
+// presenceSnapshot reads all online users from Redis.
 func (h *Hub) presenceSnapshot() []byte {
 	type user struct {
 		Nickname string `json:"nickname"`
 		Role     string `json:"role"`
 	}
-	seen := make(map[string]bool)
-	users := make([]user, 0, len(h.clients))
-	for c := range h.clients {
-		if seen[c.Nickname] {
-			continue
+	ctx := context.Background()
+	keys, err := h.rdb.Keys(ctx, "amber:users:*").Result()
+	if err != nil {
+		keys = []string{}
+	}
+	users := make([]user, 0, len(keys))
+	for _, key := range keys {
+		data, _ := h.rdb.Get(ctx, key).Result()
+		var u struct {
+			Nick string `json:"nick"`
+			Role string `json:"role"`
 		}
-		seen[c.Nickname] = true
-		users = append(users, user{c.Nickname, c.Role})
+		if json.Unmarshal([]byte(data), &u) == nil {
+			users = append(users, user{u.Nick, u.Role})
+		}
 	}
 	payload, _ := json.Marshal(map[string]interface{}{
 		"type":    "presence",
 		"payload": map[string]interface{}{"users": users},
 	})
+	return payload
+}
+
+func (h *Hub) jukeboxPayload() map[string]interface{} {
+	nClients := len(h.clients)
+	threshold := 1
+	if nClients > 1 {
+		threshold = (nClients + 1) / 2
+	}
+	queue := h.jukeboxQueue
+	if queue == nil {
+		queue = []jukeboxEntry{}
+	}
+	payload := map[string]interface{}{
+		"current":       nil,
+		"queue":         queue,
+		"skipVotes":     len(h.jukeboxSkips),
+		"skipThreshold": threshold,
+	}
+	if h.jukeboxNow != nil {
+		payload["current"] = map[string]interface{}{
+			"videoId":   h.jukeboxNow.VideoID,
+			"addedBy":   h.jukeboxNow.AddedBy,
+			"startedAt": h.jukeboxNow.StartedAt.UTC().Format(time.RFC3339),
+		}
+	}
 	return payload
 }
 
@@ -441,31 +482,6 @@ func validVideoID(s string) bool {
 	return true
 }
 
-func (h *Hub) jukeboxPayload() map[string]interface{} {
-	nClients := len(h.clients)
-	threshold := 1
-	if nClients > 1 {
-		threshold = (nClients + 1) / 2
-	}
-	queue := h.jukeboxQueue
-	if queue == nil {
-		queue = []jukeboxEntry{}
-	}
-	payload := map[string]interface{}{
-		"current":       nil,
-		"queue":         queue,
-		"skipVotes":     len(h.jukeboxSkips),
-		"skipThreshold": threshold,
-	}
-	if h.jukeboxNow != nil {
-		payload["current"] = map[string]interface{}{
-			"videoId":   h.jukeboxNow.VideoID,
-			"addedBy":   h.jukeboxNow.AddedBy,
-			"startedAt": h.jukeboxNow.StartedAt.UTC().Format(time.RFC3339),
-		}
-	}
-	return payload
-}
 
 func (h *Hub) jukeboxStateMsg() []byte {
 	out, _ := json.Marshal(map[string]interface{}{
@@ -531,7 +547,8 @@ func (h *Hub) handleInbound(c *Client, data []byte) {
 	metrics.WSMessages.WithLabelValues(frame.Type).Inc()
 	switch frame.Type {
 	case "ping":
-		// heartbeat — no-op
+		// Refresh presence TTL in Redis on heartbeat (every 15s from client)
+		h.setPresence(context.Background(), c.Nickname, c.Role)
 
 	case "typing":
 		out, _ := json.Marshal(map[string]interface{}{
@@ -863,6 +880,7 @@ func (h *Hub) Run() {
 		case c := <-h.register:
 			h.clients[c] = true
 			metrics.WSConnected.Inc()
+			h.setPresence(ctx, c.Nickname, c.Role) // Redis TTL for multi-pod
 			h.sendHistory(c)
 			h.fanout(h.presenceSnapshot())
 			h.sendJukeboxState(c)
@@ -873,6 +891,7 @@ func (h *Hub) Run() {
 				delete(h.clients, c)
 				close(c.Send)
 				metrics.WSConnected.Dec()
+				h.rdb.Del(ctx, "amber:users:"+c.Nickname) // Clear from Redis
 				stopMsg, _ := json.Marshal(map[string]interface{}{
 					"type":    "typing_stop",
 					"payload": map[string]string{"nickname": c.Nickname},
