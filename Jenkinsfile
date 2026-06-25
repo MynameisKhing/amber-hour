@@ -62,8 +62,11 @@ pipeline {
       parallel {
         stage('Backend (go vet + test)') {
           steps {
+            // Jenkins runs in a container sharing the host Docker socket, so `-v $PWD:...`
+            // would resolve against the host (empty dir). --volumes-from "$(hostname)" lends
+            // this container's volumes (incl. the workspace) to the tool container, same path.
             sh '''
-              docker run --rm -v "$PWD/backend":/src -w /src golang:1.23-alpine sh -c '
+              docker run --rm --volumes-from "$(hostname)" -w "$WORKSPACE/backend" golang:1.23-alpine sh -c '
                 go vet ./... &&
                 go test ./... -count=1
               '
@@ -73,7 +76,7 @@ pipeline {
         stage('Frontend (typecheck + build)') {
           steps {
             sh '''
-              docker run --rm -v "$PWD/frontend":/app -w /app node:20-alpine sh -c '
+              docker run --rm --volumes-from "$(hostname)" -w "$WORKSPACE/frontend" node:20-alpine sh -c '
                 npm ci &&
                 npm run build
               '
