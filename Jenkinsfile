@@ -31,7 +31,6 @@ pipeline {
     IMAGE_REPO      = 'psu6510110336/amber-hour'   // single repo, component-tagged
     DOCKERHUB_CREDS = 'dockerhub-amber-credential'
     NAMESPACE       = 'khing'
-    MANIFEST        = 'rancher-yaml/deployment.yml'
   }
 
   stages {
@@ -86,23 +85,18 @@ pipeline {
 
     stage('Deploy (kubectl)') {
       steps {
-        // Jenkins runs as a pod inside this cluster, so kubectl uses the pod's
-        // in-cluster ServiceAccount and the internal API (https://kubernetes.default.svc).
-        // The Rancher-downloaded kubeconfig pointed at an external proxy URL that the
-        // pod's DNS can't resolve. The pod's SA must hold RBAC to deploy in `khing`.
+        // Jenkins runs as a pod in this cluster, so kubectl uses the pod's in-cluster
+        // ServiceAccount + internal API; the SA holds RBAC to patch deployments in `khing`.
+        //
+        // The live Deployments were created by Rancher with a Rancher-managed
+        // spec.selector (immutable), so `kubectl apply` of our manifest is rejected.
+        // `kubectl set image` patches only the container image — it triggers a rolling
+        // update without touching selectors/labels. "*=" targets every container in the
+        // Deployment regardless of its container name.
         sh '''
           set -e
-
-          # Point the deployment manifest at the freshly pushed image tags
-          sed -i -E "s#(image: ${IMAGE_REPO}:)backend-[A-Za-z0-9._-]+#\\1${BACKEND_TAG}#g"  "$MANIFEST"
-          sed -i -E "s#(image: ${IMAGE_REPO}:)frontend-[A-Za-z0-9._-]+#\\1${FRONTEND_TAG}#g" "$MANIFEST"
-
-          # Apply the app manifests. Cluster-level infra (ConfigMap, Secret, PVC,
-          # Redis, namespace) is one-time / stateful and is provisioned manually.
-          kubectl apply -n "$NAMESPACE" \
-            -f rancher-yaml/service.yml \
-            -f rancher-yaml/ingress.yml \
-            -f "$MANIFEST"
+          kubectl set image -n "$NAMESPACE" deployment/amber-backend  "*=$BACKEND_IMAGE"
+          kubectl set image -n "$NAMESPACE" deployment/amber-frontend "*=$FRONTEND_IMAGE"
 
           kubectl rollout status -n "$NAMESPACE" deployment/amber-backend  --timeout=180s
           kubectl rollout status -n "$NAMESPACE" deployment/amber-frontend --timeout=180s
