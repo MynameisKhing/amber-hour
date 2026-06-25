@@ -1,6 +1,7 @@
 import { useState } from "react";
 import Login from "./pages/Login";
 import Bar from "./pages/Bar";
+import { useTheme } from "./hooks/useTheme";
 import type { User } from "./types";
 
 const STORAGE_KEY = "amber_user";
@@ -16,6 +17,7 @@ function loadUser(): User | null {
 
 export default function App() {
   const [user, setUser] = useState<User | null>(loadUser);
+  const { theme, toggleTheme } = useTheme();
 
   const handleLogin = (u: User) => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(u));
@@ -27,6 +29,6 @@ export default function App() {
     setUser(null);
   };
 
-  if (!user) return <Login onLogin={handleLogin} />;
-  return <Bar user={user} onLogout={handleLogout} />;
+  if (!user) return <Login onLogin={handleLogin} theme={theme} onToggleTheme={toggleTheme} />;
+  return <Bar user={user} onLogout={handleLogout} theme={theme} onToggleTheme={toggleTheme} />;
 }

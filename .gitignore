@@ -22,3 +22,17 @@ frontend/node_modules/
 # OS / editor
 .DS_Store
 Thumbs.db
+
+# Kubernetes / Rancher deployment manifests (environment-specific, contain secrets)
+rancher-yaml/
+DEPLOYMENT_FIXES.md
+frontend/docker-compose.yml
+
+# Test scripts and reports
+TEST-REPORT.md
+test-fixes.sh
+ws-*.mjs
+
+# Load test outputs (results regenerated per run)
+loadtest/loadtest-result.json
+loadtest/loadtest-verdict.json

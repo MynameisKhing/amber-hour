@@ -1,8 +1,12 @@
 import { useState } from "react";
 import type { Role, User } from "../types";
+import type { Theme } from "../hooks/useTheme";
+import ThemeToggle from "../components/ThemeToggle";
 
 interface Props {
   onLogin: (user: User) => void;
+  theme: Theme;
+  onToggleTheme: () => void;
 }
 
 const fieldLabel: React.CSSProperties = {
@@ -43,7 +47,7 @@ const fieldSelect: React.CSSProperties = {
 
 type Mode = "login" | "signup";
 
-export default function Login({ onLogin }: Props) {
+export default function Login({ onLogin, theme, onToggleTheme }: Props) {
   const [mode, setMode] = useState<Mode>("login");
   const [code, setCode] = useState("");
   const [nickname, setNickname] = useState("");
@@ -89,6 +93,13 @@ export default function Login({ onLogin }: Props) {
 
   return (
     <div style={{ minHeight: "100vh", display: "flex" }}>
+      {/* theme toggle, pinned to the corner so it works before login */}
+      <ThemeToggle
+        theme={theme}
+        onToggle={onToggleTheme}
+        compact
+        style={{ position: "fixed", top: 16, right: 16, zIndex: 10, background: "var(--surface)" }}
+      />
 
       {/* ── Left branding panel ── */}
       <div className="login-brand" style={{
@@ -96,7 +107,7 @@ export default function Login({ onLogin }: Props) {
         flexShrink: 0,
         position: "relative",
         overflow: "hidden",
-        background: "linear-gradient(150deg, #eddcbf 0%, #f2e6ce 45%, #e8d9bc 100%)",
+        background: "var(--brand-grad)",
         borderRight: "1px solid var(--border)",
         display: "flex",
         flexDirection: "column",
@@ -123,7 +134,7 @@ export default function Login({ onLogin }: Props) {
           <div style={{
             fontSize: "1.875rem",
             fontWeight: 800,
-            color: "var(--amber-lt)",
+            color: "var(--amber)",
             letterSpacing: "-0.025em",
             marginBottom: "0.625rem",
             fontFamily: "'Pixelify Sans', sans-serif",
@@ -255,7 +266,7 @@ export default function Login({ onLogin }: Props) {
               <div>
                 <label style={fieldLabel}>Access Code</label>
                 <input
-                  placeholder="Tonight's session code"
+                  placeholder="amber2024"
                   value={code}
                   onChange={(e) => setCode(e.target.value)}
                   style={fieldInput}

@@ -12,6 +12,8 @@ export type MessageType =
   | "typing"
   | "typing_stop"
   | "history"
+  | "history_more"
+  | "load_more"
   | "reaction"
   | "edit_message"
   | "delete_message"

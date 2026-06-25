@@ -16,6 +16,7 @@ const actionBtn: CSSProperties = {
 
 interface Props {
   messages: ChatMessage[];
+  loadingOlder?: boolean;
   currentUserNick: string;
   currentUserRole: Role;
   hoveredMsgId: number | null;
@@ -35,7 +36,7 @@ interface Props {
 }
 
 export default function MessageList({
-  messages, currentUserNick, currentUserRole,
+  messages, loadingOlder, currentUserNick, currentUserRole,
   hoveredMsgId, editingId, editText,
   chatRef, bottomRef,
   onScroll, onHover, onReact, onReply, onStartEdit,
@@ -81,6 +82,15 @@ export default function MessageList({
         display: "flex", flexDirection: "column",
       }}
     >
+      {loadingOlder && (
+        <div style={{
+          textAlign: "center", padding: "0.4rem 0 0.6rem",
+          color: "var(--text-muted)", fontSize: "0.78rem", flexShrink: 0,
+        }}>
+          Loading earlier messages…
+        </div>
+      )}
+
       {messages.length === 0 && (
         <div style={{
           flex: 1, display: "flex", alignItems: "center", justifyContent: "center",

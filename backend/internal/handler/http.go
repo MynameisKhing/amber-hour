@@ -444,35 +444,29 @@ func handleUpload(uploadDir string) http.HandlerFunc {
 			http.Error(w, `{"error":"image too large (max 10 MB)"}`, http.StatusBadRequest)
 			return
 		}
-		file, header, err := r.FormFile("file")
+		file, _, err := r.FormFile("file")
 		if err != nil {
 			http.Error(w, `{"error":"no file"}`, http.StatusBadRequest)
 			return
 		}
 		defer file.Close()
 
-		buf := make([]byte, 512)
-		n, _ := file.Read(buf)
-		mime := http.DetectContentType(buf[:n])
-		if _, err := file.Seek(0, io.SeekStart); err != nil {
-			http.Error(w, `{"error":"internal error"}`, http.StatusInternalServerError)
+		raw, err := io.ReadAll(file)
+		if err != nil {
+			http.Error(w, `{"error":"read failed"}`, http.StatusBadRequest)
 			return
 		}
+		mime := http.DetectContentType(raw)
 		if !strings.HasPrefix(mime, "image/") {
 			http.Error(w, `{"error":"only images allowed"}`, http.StatusBadRequest)
 			return
 		}
 
-		ext := filepath.Ext(header.Filename)
+		// Downscale oversized images before they land on the NFS volume.
+		data, ext := resizeIfLarge(raw, mime)
 		name := fmt.Sprintf("%d%s", time.Now().UnixNano(), ext)
-		out, err := os.Create(filepath.Join(uploadDir, name))
-		if err != nil {
+		if err := os.WriteFile(filepath.Join(uploadDir, name), data, 0o644); err != nil {
 			http.Error(w, `{"error":"save failed"}`, http.StatusInternalServerError)
-			return
-		}
-		defer out.Close()
-		if _, err := io.Copy(out, file); err != nil {
-			http.Error(w, `{"error":"write failed"}`, http.StatusInternalServerError)
 			return
 		}
 

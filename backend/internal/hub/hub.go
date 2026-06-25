@@ -302,37 +302,47 @@ func (h *Hub) reactionsForMessage(ctx context.Context, msgID int64) map[string][
 	return reactions
 }
 
-func (h *Hub) sendHistory(c *Client) {
-	ctx := context.Background()
-	rows, err := h.db.Query(ctx, `
+// historyPageSize bounds how many chat messages are returned per history fetch.
+// Hitting this count signals there may be older messages to lazy-load.
+const historyPageSize = 50
+
+// loadChatHistory returns up to historyPageSize chat messages in chronological
+// (ASC) order. When before != nil, only messages older than that id are returned,
+// which powers scroll-up lazy loading.
+func (h *Hub) loadChatHistory(ctx context.Context, before *int64) ([]msgRecord, error) {
+	query := `
 		SELECT m.id, m.sender_nick, m.role, m.content, m.media_url, m.created_at, m.edited_at,
 		       m.reply_to, p.sender_nick, p.content
 		FROM messages m
 		LEFT JOIN messages p ON p.id = m.reply_to
-		WHERE m.deleted_at IS NULL AND (m.type = 'chat' OR m.type IS NULL)
-		ORDER BY m.created_at DESC
-		LIMIT 50
-	`)
+		WHERE m.deleted_at IS NULL AND (m.type = 'chat' OR m.type IS NULL)`
+	var args []interface{}
+	if before != nil {
+		query += ` AND m.id < $1`
+		args = append(args, *before)
+	}
+	query += ` ORDER BY m.id DESC LIMIT 50`
+
+	rows, err := h.db.Query(ctx, query, args...)
 	if err != nil {
-		log.Printf("history query: %v", err)
-		return
+		return nil, err
 	}
 	defer rows.Close()
 
-	msgs := make([]msgRecord, 0, 50)
-	ids := make([]int64, 0, 50)
+	msgs := make([]msgRecord, 0, historyPageSize)
+	ids := make([]int64, 0, historyPageSize)
 	for rows.Next() {
 		var (
-			id          int64
-			senderNick  string
-			role        string
-			content     string
-			mediaUrl    *string
-			createdAt   time.Time
-			editedAt    *time.Time
-			replyTo     *int64
-			replyNick   *string
-			replyText   *string
+			id         int64
+			senderNick string
+			role       string
+			content    string
+			mediaUrl   *string
+			createdAt  time.Time
+			editedAt   *time.Time
+			replyTo    *int64
+			replyNick  *string
+			replyText  *string
 		)
 		if err := rows.Scan(&id, &senderNick, &role, &content, &mediaUrl, &createdAt, &editedAt,
 			&replyTo, &replyNick, &replyText); err != nil {
@@ -372,10 +382,42 @@ func (h *Hub) sendHistory(c *Client) {
 	for i, j := 0, len(msgs)-1; i < j; i, j = i+1, j-1 {
 		msgs[i], msgs[j] = msgs[j], msgs[i]
 	}
+	return msgs, nil
+}
 
+func (h *Hub) sendHistory(c *Client) {
+	msgs, err := h.loadChatHistory(context.Background(), nil)
+	if err != nil {
+		log.Printf("history query: %v", err)
+		return
+	}
 	out, _ := json.Marshal(map[string]interface{}{
-		"type":    "history",
-		"payload": map[string]interface{}{"messages": msgs},
+		"type": "history",
+		"payload": map[string]interface{}{
+			"messages": msgs,
+			"hasMore":  len(msgs) == historyPageSize,
+		},
+	})
+	select {
+	case c.Send <- out:
+	default:
+	}
+}
+
+// sendMoreHistory replies to a lazy-load request with the page of chat messages
+// immediately older than the given cursor id.
+func (h *Hub) sendMoreHistory(c *Client, before int64) {
+	msgs, err := h.loadChatHistory(context.Background(), &before)
+	if err != nil {
+		log.Printf("more history query: %v", err)
+		return
+	}
+	out, _ := json.Marshal(map[string]interface{}{
+		"type": "history_more",
+		"payload": map[string]interface{}{
+			"messages": msgs,
+			"hasMore":  len(msgs) == historyPageSize,
+		},
 	})
 	select {
 	case c.Send <- out:
@@ -774,6 +816,18 @@ func (h *Hub) handleInbound(c *Client, data []byte) {
 			return
 		}
 		h.sendWhisperHistory(c, body.TargetNick)
+
+	case "load_more":
+		var body struct {
+			Before int64 `json:"before"`
+		}
+		if err := json.Unmarshal(frame.Payload, &body); err != nil {
+			return
+		}
+		if body.Before <= 0 {
+			return
+		}
+		h.sendMoreHistory(c, body.Before)
 
 	case "jukebox_add":
 		var body struct {

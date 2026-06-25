@@ -88,7 +88,10 @@ func main() {
 }
 
 func getenv(key, fallback string) string {
-	if v := os.Getenv(key); v != "" {
+	// TrimSpace guards against a trailing newline/whitespace sneaking into a
+	// value (e.g. when a Secret is edited via the Rancher UI textarea) — a
+	// stray "\n" makes a URL DSN fail to parse with "invalid control character".
+	if v := strings.TrimSpace(os.Getenv(key)); v != "" {
 		return v
 	}
 	return fallback

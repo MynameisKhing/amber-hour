@@ -1,6 +1,8 @@
 import { useState } from "react";
 import type { CSSProperties } from "react";
 import type { User } from "../types";
+import type { Theme } from "../hooks/useTheme";
+import ThemeToggle from "./ThemeToggle";
 
 const sectionLabel: CSSProperties = {
   fontSize: "0.7rem",
@@ -34,13 +36,15 @@ interface Props {
   onToggleBarStatus: (open: boolean, lastCallAt?: string) => void;
   onCopyCode: (code: string) => void;
   onLogout: () => void;
+  theme: Theme;
+  onToggleTheme: () => void;
 }
 
 export default function LeftSidebar({
   open, user, inviteCodes, copiedCode,
   loungeOpen, barOpen, lastCallAt,
   onToggleLounge, onCheers, onToggleBarStatus,
-  onCopyCode, onLogout,
+  onCopyCode, onLogout, theme, onToggleTheme,
 }: Props) {
   const [lastCallInput, setLastCallInput] = useState("");
   const [showLastCall, setShowLastCall] = useState(false);
@@ -184,6 +188,7 @@ export default function LeftSidebar({
           }} />
           {user.role === "staff" ? "Staff" : "Guest"} · {user.nickname}
         </div>
+        <ThemeToggle theme={theme} onToggle={onToggleTheme} />
         <button className="ghost" onClick={onLogout} style={{ fontSize: "0.8rem", padding: "0.375rem 0.75rem" }}>
           Leave the bar
         </button>

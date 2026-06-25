@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
 import { useWebSocket } from "../hooks/useWebSocket";
 import type { BarStatus, ChatMessage, JukeboxState, PresencePayload, User, WSMessage, WalletPayload } from "../types";
+import type { Theme } from "../hooks/useTheme";
 import { COMMANDS } from "../components/constants";
 import LeftSidebar from "../components/LeftSidebar";
 import ChatHeader from "../components/ChatHeader";
@@ -19,9 +20,11 @@ import CheersOverlay from "../components/CheersOverlay";
 interface Props {
   user: User;
   onLogout: () => void;
+  theme: Theme;
+  onToggleTheme: () => void;
 }
 
-export default function Bar({ user, onLogout }: Props) {
+export default function Bar({ user, onLogout, theme, onToggleTheme }: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [onlineUsers, setOnlineUsers] = useState<PresencePayload["users"]>([]);
   const [input, setInput] = useState("");
@@ -54,9 +57,15 @@ export default function Bar({ user, onLogout }: Props) {
   const [barOpen, setBarOpen] = useState(true);
   const [lastCallAt, setLastCallAt] = useState<string | null>(null);
   const [balance, setBalance] = useState<number | null>(null);
+  const [loadingOlder, setLoadingOlder] = useState(false);
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const chatRef = useRef<HTMLDivElement>(null);
+  // Lazy-loading older history: hasMore gates further fetches, loadingMore guards
+  // against duplicate requests, and prependHeight preserves scroll on prepend.
+  const hasMoreHistoryRef = useRef(true);
+  const loadingMoreRef = useRef(false);
+  const prependAnchorRef = useRef<{ height: number; top: number } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const whisperBottomRef = useRef<HTMLDivElement>(null);
   const whisperTargetRef = useRef<string | null>(null);
@@ -109,9 +118,23 @@ export default function Bar({ user, onLogout }: Props) {
   const handleMessage = useCallback((msg: WSMessage) => {
     switch (msg.type) {
       case "history": {
-        const { messages: hist } = msg.payload as { messages: ChatMessage[] };
+        const { messages: hist, hasMore } = msg.payload as { messages: ChatMessage[]; hasMore?: boolean };
+        hasMoreHistoryRef.current = hasMore ?? false;
         setMessages(hist.map((m) => ({ ...m, reactions: m.reactions ?? {} })));
         setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "instant" }), 0);
+        break;
+      }
+      case "history_more": {
+        const { messages: older, hasMore } = msg.payload as { messages: ChatMessage[]; hasMore?: boolean };
+        hasMoreHistoryRef.current = hasMore ?? false;
+        loadingMoreRef.current = false;
+        setLoadingOlder(false);
+        if (older.length === 0) {
+          prependAnchorRef.current = null;
+          break;
+        }
+        // Prepend older messages; useLayoutEffect restores the scroll position.
+        setMessages((prev) => [...older.map((m) => ({ ...m, reactions: m.reactions ?? {} })), ...prev]);
         break;
       }
       case "chat": {
@@ -357,7 +380,25 @@ export default function Bar({ user, onLogout }: Props) {
     const el = chatRef.current;
     if (!el) return;
     isAtBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 60;
+    // Near the top with more history available → lazy-load the previous page.
+    if (el.scrollTop < 80 && hasMoreHistoryRef.current && !loadingMoreRef.current && messages.length > 0) {
+      loadingMoreRef.current = true;
+      setLoadingOlder(true);
+      prependAnchorRef.current = { height: el.scrollHeight, top: el.scrollTop };
+      send({ type: "load_more", payload: { before: messages[0].id } });
+    }
   };
+
+  // After older messages are prepended, keep the viewport anchored on the message
+  // the user was looking at instead of jumping to the top.
+  useLayoutEffect(() => {
+    const el = chatRef.current;
+    const anchor = prependAnchorRef.current;
+    if (el && anchor) {
+      el.scrollTop = el.scrollHeight - anchor.height + anchor.top;
+      prependAnchorRef.current = null;
+    }
+  }, [messages]);
 
   const react = (msgId: number, emoji: string) => {
     send({ type: "reaction", payload: { messageId: msgId, emoji } });
@@ -489,6 +530,8 @@ export default function Bar({ user, onLogout }: Props) {
         onToggleBarStatus={(open, lc) => send({ type: "bar_status", payload: { open, ...(lc ? { lastCallAt: lc } : {}) } })}
         onCopyCode={copyCode}
         onLogout={() => { setSidebarOpen(false); onLogout(); }}
+        theme={theme}
+        onToggleTheme={onToggleTheme}
       />
 
       <main style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
@@ -516,6 +559,7 @@ export default function Bar({ user, onLogout }: Props) {
 
         <MessageList
           messages={messages}
+          loadingOlder={loadingOlder}
           currentUserNick={user.nickname}
           currentUserRole={user.role}
           hoveredMsgId={hoveredMsgId}

@@ -11,6 +11,8 @@ import {
   mdiTrashCanOutline,
   mdiMessageOutline,
   mdiLockOutline,
+  mdiWeatherNight,
+  mdiWhiteBalanceSunny,
 } from "@mdi/js";
 
 interface P { size?: number; style?: CSSProperties }
@@ -31,3 +33,5 @@ export const IcoEdit    = make(mdiPencilOutline, 15);
 export const IcoTrash   = make(mdiTrashCanOutline, 15);
 export const IcoMessage = make(mdiMessageOutline, 15);
 export const IcoLock    = make(mdiLockOutline, 14);
+export const IcoMoon    = make(mdiWeatherNight, 16);
+export const IcoSun     = make(mdiWhiteBalanceSunny, 16);

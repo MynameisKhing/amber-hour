@@ -56,7 +56,30 @@
 .marquee-wrap { overflow: hidden; flex: 1; min-width: 0; }
 
 :root {
-  /* warm parchment palette — cozy bar theme */
+  /* dark roasted-brown palette — cozy bar after hours (default) */
+  --bg:        #15100b;
+  --surface:   #1e1813;
+  --surface2:  #2a2119;
+  --border:    #3d3225;
+  --amber:     #d98a25;
+  --amber-lt:  #e0a040;
+  --amber-dim: #3a2a14;
+  --text:      #f4ede1;
+  --text-muted:#a8927a;
+  --staff:     #b794f6;
+  --customer:  #63a4e0;
+  --danger:    #e05a5a;
+  --brand-grad: linear-gradient(150deg, #241b12 0%, #19130d 45%, #2a1f14 100%);
+  --shadow:    rgba(0, 0, 0, 0.45);
+  --radius:    4px;
+  --tabbar-h:  52px;
+  color-scheme: dark;
+  /* whole-UI pixel font; Mitr fallback carries Thai glyphs Pixelify lacks */
+  font-family: 'Pixelify Sans', 'Mitr', 'Segoe UI', system-ui, sans-serif;
+}
+
+:root[data-theme="light"] {
+  /* warm parchment palette — cozy bar, lights on */
   --bg:        #f4ede1;
   --surface:   #faf5ed;
   --surface2:  #ecdfd0;
@@ -69,10 +92,9 @@
   --staff:     #5b27a8;
   --customer:  #155ea8;
   --danger:    #b82020;
-  --radius:    4px;
-  --tabbar-h:  52px;
-  /* whole-UI pixel font; Mitr fallback carries Thai glyphs Pixelify lacks */
-  font-family: 'Pixelify Sans', 'Mitr', 'Segoe UI', system-ui, sans-serif;
+  --brand-grad: linear-gradient(150deg, #eddcbf 0%, #f2e6ce 45%, #e8d9bc 100%);
+  --shadow:    rgba(80, 40, 10, 0.16);
+  color-scheme: light;
 }
 
 body {
