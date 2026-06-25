@@ -71,14 +71,12 @@ pipeline {
             echo "$DOCKER_PASS" | docker login "$REGISTRY" -u "$DOCKER_USER" --password-stdin
 
             # Backend
-            docker build -t "$BACKEND_IMAGE" -t "$IMAGE_REPO:backend-latest" ./backend
+            docker build -t "$BACKEND_IMAGE" ./backend
             docker push "$BACKEND_IMAGE"
-            docker push "$IMAGE_REPO:backend-latest"
 
             # Frontend
-            docker build -t "$FRONTEND_IMAGE" -t "$IMAGE_REPO:frontend-latest" ./frontend
+            docker build -t "$FRONTEND_IMAGE" ./frontend
             docker push "$FRONTEND_IMAGE"
-            docker push "$IMAGE_REPO:frontend-latest"
 
             docker logout "$REGISTRY"
           '''
