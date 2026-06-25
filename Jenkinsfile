@@ -29,7 +29,7 @@ pipeline {
   environment {
     REGISTRY        = 'docker.io'
     IMAGE_REPO      = 'psu6510110336/amber-hour'   // single repo, component-tagged
-    DOCKERHUB_CREDS = 'dockerhub-creds'
+    DOCKERHUB_CREDS = 'dockerhub-amber-credential'
     KUBE_CREDS      = 'kubeconfig-khing'
     NAMESPACE       = 'khing'
     MANIFEST        = 'rancher-yaml/deployment.yml'
@@ -76,7 +76,6 @@ pipeline {
     }
 
     stage('Build & Push images') {
-      when { branch 'deploy' }
       steps {
         withCredentials([usernamePassword(
             credentialsId: env.DOCKERHUB_CREDS,
@@ -102,7 +101,6 @@ pipeline {
     }
 
     stage('Deploy (kubectl)') {
-      when { branch 'deploy' }
       steps {
         withKubeConfig([credentialsId: env.KUBE_CREDS]) {
           sh '''
