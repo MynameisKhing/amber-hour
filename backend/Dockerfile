@@ -8,8 +8,11 @@ WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
 
-# Build (pgx is pure Go → no CGO needed → fully static binary)
+# Vet + test, then build (pgx is pure Go → no CGO needed → fully static binary).
+# Running these here keeps validation in the streamed build context, so it works
+# regardless of how the Docker daemon is provided (dind sidecar or node socket).
 COPY . .
+RUN go vet ./... && go test ./... -count=1
 RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/server ./cmd/server
 
 # ── Stage 2: minimal runtime ───────────────────────────────────────

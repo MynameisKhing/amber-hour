@@ -1,7 +1,7 @@
 // Amber Hour — CI/CD pipeline
 //
 // Trigger: a version tag matching V*.*.* is pushed (e.g. `git push origin V1.2.3`).
-// Flow:    validate tag → test → build & push images (Docker Hub) → kubectl deploy to `khing`
+// Flow:    validate tag → build & push images (vet/test run inside the image build) → kubectl deploy
 //
 // Requirements on the Jenkins controller/agent:
 //   - Docker CLI + daemon access (build/push images, run tool containers)
@@ -58,34 +58,10 @@ pipeline {
       }
     }
 
-    stage('Test') {
-      parallel {
-        stage('Backend (go vet + test)') {
-          steps {
-            // Jenkins runs in a container sharing the host Docker socket, so `-v $PWD:...`
-            // would resolve against the host (empty dir). --volumes-from "$(hostname)" lends
-            // this container's volumes (incl. the workspace) to the tool container, same path.
-            sh '''
-              docker run --rm --volumes-from "$(hostname)" -w "$WORKSPACE/backend" golang:1.23-alpine sh -c '
-                go vet ./... &&
-                go test ./... -count=1
-              '
-            '''
-          }
-        }
-        stage('Frontend (typecheck + build)') {
-          steps {
-            sh '''
-              docker run --rm --volumes-from "$(hostname)" -w "$WORKSPACE/frontend" node:20-alpine sh -c '
-                npm ci &&
-                npm run build
-              '
-            '''
-          }
-        }
-      }
-    }
-
+    // No standalone test stage: backend `go vet`/`go test` run inside backend/Dockerfile
+    // and frontend `tsc -b` runs via `npm run build` in frontend/Dockerfile. The image
+    // build (streamed context) is the validation, so it works on Jenkins-in-Kubernetes
+    // where bind-mounting the workspace into sibling containers is not possible.
     stage('Build & Push images') {
       steps {
         withCredentials([usernamePassword(
