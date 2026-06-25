@@ -1,6 +1,7 @@
 // Amber Hour — CI/CD pipeline
 //
-// Flow:  test → build & push images (Docker Hub) → kubectl deploy to namespace `khing`
+// Trigger: a version tag matching V*.*.* is pushed (e.g. `git push origin V1.2.3`).
+// Flow:    validate tag → test → build & push images (Docker Hub) → kubectl deploy to `khing`
 //
 // Requirements on the Jenkins controller/agent:
 //   - Docker CLI + daemon access (build/push images, run tool containers)
@@ -36,16 +37,24 @@ pipeline {
   }
 
   stages {
-    stage('Checkout') {
+    stage('Checkout & validate version tag') {
       steps {
         checkout scm
         script {
-          env.GIT_SHA       = sh(script: 'git rev-parse --short=8 HEAD', returnStdout: true).trim()
-          env.BACKEND_TAG   = "backend-${env.GIT_SHA}"
-          env.FRONTEND_TAG  = "frontend-${env.GIT_SHA}"
+          // The build is triggered by a pushed tag. Resolve it (TAG_NAME for Multibranch,
+          // `git describe` for a plain Pipeline) and refuse anything that isn't V*.*.*.
+          def tag = (env.TAG_NAME ?: sh(
+              script: 'git describe --exact-match --tags HEAD 2>/dev/null || true',
+              returnStdout: true)).trim()
+          if (!(tag ==~ /^V\d+\.\d+\.\d+$/)) {
+            error("Refusing to build: '${tag}' is not a valid version tag. Expected V*.*.* (e.g. V1.2.3).")
+          }
+          env.VERSION       = tag
+          env.BACKEND_TAG   = "backend-${tag}"
+          env.FRONTEND_TAG  = "frontend-${tag}"
           env.BACKEND_IMAGE = "${IMAGE_REPO}:${env.BACKEND_TAG}"
           env.FRONTEND_IMAGE= "${IMAGE_REPO}:${env.FRONTEND_TAG}"
-          echo "Building ${env.BACKEND_IMAGE} and ${env.FRONTEND_IMAGE}"
+          echo "Version ${tag} → ${env.BACKEND_IMAGE}, ${env.FRONTEND_IMAGE}"
         }
       }
     }
@@ -126,7 +135,7 @@ pipeline {
   }
 
   post {
-    success { echo "✅ ${env.JOB_NAME} #${env.BUILD_NUMBER} — deployed ${env.GIT_SHA} to ${env.NAMESPACE}." }
+    success { echo "✅ ${env.JOB_NAME} #${env.BUILD_NUMBER} — deployed ${env.VERSION} to ${env.NAMESPACE}." }
     failure { echo "❌ ${env.JOB_NAME} #${env.BUILD_NUMBER} failed. Check the stage logs." }
     always  { sh 'docker image prune -f >/dev/null 2>&1 || true' }
   }
