@@ -3,15 +3,15 @@
 // Trigger: a version tag matching V*.*.* is pushed (e.g. `git push origin V1.2.3`).
 // Flow:    validate tag → build & push images (vet/test run inside the image build) → kubectl deploy
 //
-// Requirements on the Jenkins controller/agent:
-//   - Docker CLI + daemon access (build/push images, run tool containers)
-//   - kubectl on PATH, agent able to reach the cluster API server
-//   - Plugins: Pipeline, Docker Pipeline, Credentials Binding, Kubernetes CLI
+// Requirements (Jenkins runs as a pod inside the target cluster on Rancher):
+//   - Docker CLI + daemon access (build/push images)
+//   - kubectl on PATH; deploys via the pod's in-cluster ServiceAccount
+//   - Plugins: Pipeline, Docker Pipeline, Credentials Binding
 //   - Credentials:
-//       * 'dockerhub-creds'  : Username/Password — push rights to docker.io/psu6510110336
-//                              (use a Docker Hub access token as the password)
-//       * 'kubeconfig-khing' : Secret file — kubeconfig with RBAC to apply/patch
-//                              deployments in the `khing` namespace
+//       * 'dockerhub-amber-credential' : Username/Password — push rights to
+//                                        docker.io/psu6510110336 (use an access token)
+//   - The Jenkins pod's ServiceAccount must hold RBAC to apply deployment/service/
+//     ingress in the `khing` namespace (Role + RoleBinding).
 //
 // Deployment is direct: this pipeline runs `kubectl apply` on deployment/service/ingress.
 // Cluster infra (Secret, ConfigMap, PVC, Redis) is provisioned manually and lives only
@@ -30,7 +30,6 @@ pipeline {
     REGISTRY        = 'docker.io'
     IMAGE_REPO      = 'psu6510110336/amber-hour'   // single repo, component-tagged
     DOCKERHUB_CREDS = 'dockerhub-amber-credential'
-    KUBE_CREDS      = 'kubeconfig-khing'
     NAMESPACE       = 'khing'
     MANIFEST        = 'rancher-yaml/deployment.yml'
   }
@@ -89,25 +88,27 @@ pipeline {
 
     stage('Deploy (kubectl)') {
       steps {
-        withKubeConfig([credentialsId: env.KUBE_CREDS]) {
-          sh '''
-            set -e
+        // Jenkins runs as a pod inside this cluster, so kubectl uses the pod's
+        // in-cluster ServiceAccount and the internal API (https://kubernetes.default.svc).
+        // The Rancher-downloaded kubeconfig pointed at an external proxy URL that the
+        // pod's DNS can't resolve. The pod's SA must hold RBAC to deploy in `khing`.
+        sh '''
+          set -e
 
-            # Point the deployment manifest at the freshly pushed image tags
-            sed -i -E "s#(image: ${IMAGE_REPO}:)backend-[A-Za-z0-9._-]+#\\1${BACKEND_TAG}#g"  "$MANIFEST"
-            sed -i -E "s#(image: ${IMAGE_REPO}:)frontend-[A-Za-z0-9._-]+#\\1${FRONTEND_TAG}#g" "$MANIFEST"
+          # Point the deployment manifest at the freshly pushed image tags
+          sed -i -E "s#(image: ${IMAGE_REPO}:)backend-[A-Za-z0-9._-]+#\\1${BACKEND_TAG}#g"  "$MANIFEST"
+          sed -i -E "s#(image: ${IMAGE_REPO}:)frontend-[A-Za-z0-9._-]+#\\1${FRONTEND_TAG}#g" "$MANIFEST"
 
-            # Apply the app manifests. Cluster-level infra (ConfigMap, Secret, PVC,
-            # Redis, namespace) is one-time / stateful and is provisioned manually.
-            kubectl apply -n "$NAMESPACE" \
-              -f rancher-yaml/service.yml \
-              -f rancher-yaml/ingress.yml \
-              -f "$MANIFEST"
+          # Apply the app manifests. Cluster-level infra (ConfigMap, Secret, PVC,
+          # Redis, namespace) is one-time / stateful and is provisioned manually.
+          kubectl apply -n "$NAMESPACE" \
+            -f rancher-yaml/service.yml \
+            -f rancher-yaml/ingress.yml \
+            -f "$MANIFEST"
 
-            kubectl rollout status -n "$NAMESPACE" deployment/amber-backend  --timeout=180s
-            kubectl rollout status -n "$NAMESPACE" deployment/amber-frontend --timeout=180s
-          '''
-        }
+          kubectl rollout status -n "$NAMESPACE" deployment/amber-backend  --timeout=180s
+          kubectl rollout status -n "$NAMESPACE" deployment/amber-frontend --timeout=180s
+        '''
       }
     }
   }

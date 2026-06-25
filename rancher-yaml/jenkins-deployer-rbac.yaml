@@ -1,0 +1,39 @@
+# Grants the Jenkins pod's ServiceAccount permission to deploy into the `khing`
+# namespace. Apply this ONCE, manually, from a machine whose kubeconfig works
+# (e.g. the Rancher download on your laptop):
+#
+#   1. Find the Jenkins pod's namespace + ServiceAccount:
+#        kubectl get pods -A | grep -i jenkins
+#        kubectl get pod <jenkins-pod> -n <jenkins-ns> -o jsonpath='{.spec.serviceAccountName}{"\n"}'
+#   2. Fill in <JENKINS_NS> and <JENKINS_SA> below.
+#   3. kubectl apply -f rancher-yaml/jenkins-deployer-rbac.yaml
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: jenkins-deployer
+  namespace: khing
+rules:
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+  - apiGroups: [""]
+    resources: ["services"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: jenkins-deployer
+  namespace: khing
+subjects:
+  - kind: ServiceAccount
+    name: <JENKINS_SA>        # e.g. "default" or "jenkins"
+    namespace: <JENKINS_NS>   # namespace where the Jenkins pod runs
+roleRef:
+  kind: Role
+  name: jenkins-deployer
+  apiGroup: rbac.authorization.k8s.io
