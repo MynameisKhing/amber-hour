@@ -23,8 +23,11 @@ frontend/node_modules/
 .DS_Store
 Thumbs.db
 
-# Kubernetes / Rancher deployment manifests (environment-specific, contain secrets)
-rancher-yaml/
+# Kubernetes / Rancher deployment manifests.
+# Manifests are tracked (needed by the Jenkins pipeline), but the real Secret
+# holding live credentials must NEVER be committed — recreate it in-cluster
+# from rancher-yaml/secret.example.yml.
+rancher-yaml/secret.yml
 DEPLOYMENT_FIXES.md
 frontend/docker-compose.yml
 

@@ -1,0 +1,44 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: amber-hour-ingress
+  namespace: khing
+  annotations:
+    haproxy.org/timeout-tunnel: "3600s"
+    haproxy.org/timeout-client: "600s"
+    haproxy.org/timeout-server: "600s"
+    haproxy.org/proxy-body-size: "100m"
+spec:
+  ingressClassName: haproxy
+  rules:
+    - host: khing.devsecops.wiki
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: amber-backend
+                port:
+                  number: 8080
+          - path: /ws
+            pathType: Prefix
+            backend:
+              service:
+                name: amber-backend
+                port:
+                  number: 8080
+          - path: /uploads
+            pathType: Prefix
+            backend:
+              service:
+                name: amber-backend
+                port:
+                  number: 8080
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: amber-frontend
+                port:
+                  number: 80

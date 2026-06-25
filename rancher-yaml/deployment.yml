@@ -1,0 +1,151 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: amber-backend
+  namespace: khing
+  labels:
+    app: amber-hour
+    component: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: amber-hour
+      component: backend
+  template:
+    metadata:
+      labels:
+        app: amber-hour
+        component: backend
+    spec:
+      imagePullSecrets:
+        - name: amber-secrets
+      containers:
+        - name: backend
+          image: psu6510110336/amber-hour:backend-v4
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: amber-configmap
+          ports:
+            - containerPort: 8080
+              name: http
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 3
+            timeoutSeconds: 2
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 20
+            periodSeconds: 5
+            failureThreshold: 3
+            timeoutSeconds: 2
+          volumeMounts:
+            - name: uploads
+              mountPath: /data/uploads
+      terminationGracePeriodSeconds: 30
+      volumes:
+        - name: uploads
+          persistentVolumeClaim:
+            claimName: amber-uploads
+      restartPolicy: Always
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: amber-frontend
+  namespace: khing
+  labels:
+    app: amber-hour
+    component: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: amber-hour
+      component: frontend
+  template:
+    metadata:
+      labels:
+        app: amber-hour
+        component: frontend
+    spec:
+      imagePullSecrets:
+        - name: amber-secrets
+      containers:
+        - name: frontend
+          image: psu6510110336/amber-hour:frontend-v2
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 80
+              name: http
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+              scheme: HTTP
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+            timeoutSeconds: 2
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+              scheme: HTTP
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 3
+            timeoutSeconds: 2
+      terminationGracePeriodSeconds: 30
+      restartPolicy: Always
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: amber-backend
+  namespace: khing
+  labels:
+    app: amber-hour
+    component: backend
+spec:
+  type: ClusterIP
+  selector:
+    app: amber-hour
+    component: backend
+  ports:
+    - port: 8080
+      targetPort: 8080
+      protocol: TCP
+      name: http
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: amber-frontend
+  namespace: khing
+  labels:
+    app: amber-hour
+    component: frontend
+spec:
+  type: ClusterIP
+  selector:
+    app: amber-hour
+    component: frontend
+  ports:
+    - port: 80
+      targetPort: 80
+      protocol: TCP
+      name: http
