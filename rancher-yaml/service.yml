@@ -1,18 +1,39 @@
-# Services are defined in deployment.yml (amber-backend and amber-frontend)
-# This file is kept for reference only.
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: amber-backend
+  namespace: khing
+  labels:
+    app: amber-hour
+    component: backend
+spec:
+  type: ClusterIP
+  selector:
+    app: amber-hour
+    component: backend
+  ports:
+    - port: 8080
+      targetPort: 8080
+      protocol: TCP
+      name: http
 
-# For direct pod access without Ingress, you can expose services as NodePort:
-# apiVersion: v1
-# kind: Service
-# metadata:
-#   name: amber-frontend-nodeport
-#   namespace: khing
-# spec:
-#   type: NodePort
-#   selector:
-#     app: amber-hour
-#     component: frontend
-#   ports:
-#     - port: 80
-#       targetPort: 80
-#       nodePort: 30080  # Range: 30000-32767
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: amber-frontend
+  namespace: khing
+  labels:
+    app: amber-hour
+    component: frontend
+spec:
+  type: ClusterIP
+  selector:
+    app: amber-hour
+    component: frontend
+  ports:
+    - port: 80
+      targetPort: 80
+      protocol: TCP
+      name: http

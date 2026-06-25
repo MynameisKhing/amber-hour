@@ -85,7 +85,6 @@ spec:
       containers:
         - name: frontend
           image: psu6510110336/amber-hour:frontend-v2
-          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 80
               name: http
@@ -109,43 +108,3 @@ spec:
             timeoutSeconds: 2
       terminationGracePeriodSeconds: 30
       restartPolicy: Always
-
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: amber-backend
-  namespace: khing
-  labels:
-    app: amber-hour
-    component: backend
-spec:
-  type: ClusterIP
-  selector:
-    app: amber-hour
-    component: backend
-  ports:
-    - port: 8080
-      targetPort: 8080
-      protocol: TCP
-      name: http
-
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: amber-frontend
-  namespace: khing
-  labels:
-    app: amber-hour
-    component: frontend
-spec:
-  type: ClusterIP
-  selector:
-    app: amber-hour
-    component: frontend
-  ports:
-    - port: 80
-      targetPort: 80
-      protocol: TCP
-      name: http

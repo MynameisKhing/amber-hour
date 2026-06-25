@@ -12,9 +12,9 @@
 //       * 'kubeconfig-khing' : Secret file — kubeconfig with RBAC to apply/patch
 //                              deployments in the `khing` namespace
 //
-// Deployment is direct: this pipeline runs `kubectl apply`. The Secret holding live
-// credentials is NOT in git — it is applied to the cluster manually (see
-// rancher-yaml/secret.example.yml). The pipeline only applies the non-secret manifests.
+// Deployment is direct: this pipeline runs `kubectl apply` on deployment/service/ingress.
+// Cluster infra (Secret, ConfigMap, PVC, Redis) is provisioned manually and lives only
+// in the cluster — the Secret with live credentials is never committed to git.
 
 pipeline {
   agent any
@@ -112,12 +112,11 @@ pipeline {
             sed -i -E "s#(image: ${IMAGE_REPO}:)backend-[A-Za-z0-9._-]+#\\1${BACKEND_TAG}#g"  "$MANIFEST"
             sed -i -E "s#(image: ${IMAGE_REPO}:)frontend-[A-Za-z0-9._-]+#\\1${FRONTEND_TAG}#g" "$MANIFEST"
 
-            # Apply non-secret manifests only. The Secret, db-init Job, Redis and PVC
-            # are one-time / stateful and are applied manually outside the pipeline.
+            # Apply the app manifests. Cluster-level infra (ConfigMap, Secret, PVC,
+            # Redis, namespace) is one-time / stateful and is provisioned manually.
             kubectl apply -n "$NAMESPACE" \
-              -f rancher-yaml/configmap.yml \
               -f rancher-yaml/service.yml \
-              -f rancher-yaml/ingress-http.yml \
+              -f rancher-yaml/ingress.yml \
               -f "$MANIFEST"
 
             kubectl rollout status -n "$NAMESPACE" deployment/amber-backend  --timeout=180s
