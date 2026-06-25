@@ -60,14 +60,23 @@ pipeline {
 
     stage('Deploy (kubectl)') {
       steps {
-        sh '''
-          set -e
-          kubectl set image -n "$NAMESPACE" deployment/amber-backend  "*=$BACKEND_IMAGE"
-          kubectl set image -n "$NAMESPACE" deployment/amber-frontend "*=$FRONTEND_IMAGE"
+        withCredentials([file(credentialsId: 'kubeconfig-khing',
+                              variable: 'KUBECONFIG_FILE')]) {
+          sh '''
+            set -e
+            export KUBECONFIG="$KUBECONFIG_FILE"
+            kubectl get nodes
 
-          kubectl rollout status -n "$NAMESPACE" deployment/amber-backend  --timeout=180s
-          kubectl rollout status -n "$NAMESPACE" deployment/amber-frontend --timeout=180s
-        '''
+            kubectl set image -n "$NAMESPACE" deployment/amber-backend  "*=$BACKEND_IMAGE"
+            kubectl set image -n "$NAMESPACE" deployment/amber-frontend "*=$FRONTEND_IMAGE"
+
+            kubectl rollout restart -n "$NAMESPACE" deployment/amber-backend
+            kubectl rollout restart -n "$NAMESPACE" deployment/amber-frontend
+
+            kubectl rollout status -n "$NAMESPACE" deployment/amber-backend  --timeout=180s
+            kubectl rollout status -n "$NAMESPACE" deployment/amber-frontend --timeout=180s
+          '''
+        }
       }
     }
   }
