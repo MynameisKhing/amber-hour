@@ -1,12 +1,10 @@
-# Grants the Jenkins pod's ServiceAccount permission to deploy into the `khing`
-# namespace. Apply this ONCE, manually, from a machine whose kubeconfig works
-# (e.g. the Rancher download on your laptop):
+# Grants the Jenkins pod's ServiceAccount (system:serviceaccount:jenkins:jenkins)
+# permission to deploy into the `khing` namespace. Apply this ONCE, manually:
 #
-#   1. Find the Jenkins pod's namespace + ServiceAccount:
-#        kubectl get pods -A | grep -i jenkins
-#        kubectl get pod <jenkins-pod> -n <jenkins-ns> -o jsonpath='{.spec.serviceAccountName}{"\n"}'
-#   2. Fill in <JENKINS_NS> and <JENKINS_SA> below.
-#   3. kubectl apply -f rancher-yaml/jenkins-deployer-rbac.yaml
+#   kubectl apply -f rancher-yaml/jenkins-deployer-rbac.yaml
+#
+# If you lack rights to create it, ask whoever administers the `khing`
+# project/cluster to apply this file.
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -31,8 +29,8 @@ metadata:
   namespace: khing
 subjects:
   - kind: ServiceAccount
-    name: <JENKINS_SA>        # e.g. "default" or "jenkins"
-    namespace: <JENKINS_NS>   # namespace where the Jenkins pod runs
+    name: jenkins             # from the Forbidden error: system:serviceaccount:jenkins:jenkins
+    namespace: jenkins
 roleRef:
   kind: Role
   name: jenkins-deployer
