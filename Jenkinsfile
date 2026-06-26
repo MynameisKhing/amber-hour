@@ -12,9 +12,35 @@ pipeline {
     IMAGE_REPO      = 'psu6510110336/amber-hour'
     DOCKERHUB_CREDS = 'dockerhub-amber-credential'
     NAMESPACE       = 'khing'
+    GITHUB_REPO_URL = 'https://github.com/MynameisKhing/amber-hour.git'
   }
 
   stages {
+    stage('Preflight: GitHub connectivity') {
+      steps {
+        sh '''
+          set -e
+          echo "Checking Jenkins → GitHub connectivity before running the pipeline..."
+
+          # 1) Reach github.com itself
+          if ! curl -fsS -o /dev/null --max-time 15 https://github.com; then
+            echo "❌ Cannot reach https://github.com from this Jenkins agent."
+            exit 1
+          fi
+
+          # 2) Reach the actual repo's git endpoint (HTTP 200 = reachable & public,
+          #    401 = reachable but needs auth — both prove network connectivity)
+          code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 \
+                 "${GITHUB_REPO_URL%.git}.git/info/refs?service=git-upload-pack")
+          echo "GitHub repo endpoint returned HTTP ${code}"
+          case "$code" in
+            200|301|302|401) echo "✅ GitHub is reachable. Proceeding with the pipeline." ;;
+            *) echo "❌ Unexpected response (${code}) from ${GITHUB_REPO_URL}."; exit 1 ;;
+          esac
+        '''
+      }
+    }
+
     stage('Checkout & validate version tag') {
       steps {
         checkout scm
